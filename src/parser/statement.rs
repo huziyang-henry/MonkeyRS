@@ -43,7 +43,7 @@ pub struct IntegerLiteral {
 
 impl Display for IntegerLiteral {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "IntegerLiteral {}", self.token.literal)
+        write!(f, "{}", self.token.literal)
     }
 }
 

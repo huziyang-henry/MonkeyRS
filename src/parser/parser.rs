@@ -8,7 +8,7 @@ use crate::parser::program::Program;
 use crate::parser::statement::{ExpressionStatement, Identifier, InfixExpression, IntegerLiteral, LetStatement, PrefixExpression, ReturnStatement, Statement};
 
 type PrefixParseFn = fn(parser: &mut Parser) -> Option<Box<dyn Expression>>;
-type InfixParseFn = fn(parser: &mut Parser, &Box<dyn Expression>) -> Option<Box<dyn Expression>>;
+type InfixParseFn = fn(parser: &mut Parser, Box<dyn Expression>) -> Option<Box<dyn Expression>>;
 
 lazy_static! {
     static ref PRECEDENCES: HashMap<TokenType, PrecedenceType> = {
@@ -64,7 +64,14 @@ impl Parser {
         parser.register_prefix(TokenType::BANG, Parser::parse_prefix_expression);
         parser.register_prefix(TokenType::MINUS, Parser::parse_prefix_expression);
 
-        // parser.register_infix(TokenType::PLUS, )
+        parser.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
+        parser.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
+        parser.register_infix(TokenType::SLASH, Parser::parse_infix_expression);
+        parser.register_infix(TokenType::ASTERISK, Parser::parse_infix_expression);
+        parser.register_infix(TokenType::EQ, Parser::parse_infix_expression);
+        parser.register_infix(TokenType::NEQ, Parser::parse_infix_expression);
+        parser.register_infix(TokenType::LT, Parser::parse_infix_expression);
+        parser.register_infix(TokenType::GT, Parser::parse_infix_expression);
 
         parser
     }
@@ -164,9 +171,9 @@ impl Parser {
                     if infix_option.is_none() {
                         return Some(left);
                     } else {
-                        let infix = infix_option.unwrap();
+                        let infix = infix_option.unwrap().clone();
                         self.next_token();
-                        left = infix(self, &left)?
+                        left = infix(self, left)?
                     }
                 }
 
