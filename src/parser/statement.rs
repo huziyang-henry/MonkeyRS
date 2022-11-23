@@ -1,129 +1,10 @@
 use std::fmt::{Display, Formatter};
 use crate::lexer::token::Token;
-use crate::parser::expression::Expression;
+use crate::parser::expression::{Expression, Identifier};
 use crate::parser::node::Node;
 
 pub trait Statement: Node {
     fn statement_node(&self) -> Box<dyn Node>;
-}
-
-pub struct Identifier {
-    pub token: Token,
-    pub value: String,
-}
-
-impl Display for Identifier {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
-
-impl Node for Identifier {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
-}
-
-impl Statement for Identifier {
-    fn statement_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
-impl Expression for Identifier {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
-pub struct IntegerLiteral {
-    pub token: Token,
-    pub value: i64,
-}
-
-impl Display for IntegerLiteral {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.token.literal)
-    }
-}
-
-impl Node for IntegerLiteral {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
-}
-
-impl Statement for IntegerLiteral {
-    fn statement_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
-impl Expression for IntegerLiteral {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
-pub struct PrefixExpression {
-    pub token: Token,
-    pub operator: String,
-    pub right: Box<dyn Expression>,
-}
-
-impl Display for PrefixExpression {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}{})", self.operator, self.right)
-    }
-}
-
-impl Node for PrefixExpression {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
-}
-
-impl Statement for PrefixExpression {
-    fn statement_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
-impl Expression for PrefixExpression {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
-pub struct InfixExpression {
-    pub token: Token,
-    pub left: Box<dyn Expression>,
-    pub operator: String,
-    pub right: Box<dyn Expression>,
-}
-
-impl Node for InfixExpression {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
-}
-
-impl Display for InfixExpression {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({} {} {})", self.left, self.operator, self.right)
-    }
-}
-
-impl Statement for InfixExpression {
-    fn statement_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
-impl Expression for InfixExpression {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
 }
 
 pub struct LetStatement {
@@ -201,6 +82,32 @@ impl Node for ExpressionStatement {
 }
 
 impl Statement for ExpressionStatement {
+    fn statement_node(&self) -> Box<dyn Node> {
+        todo!()
+    }
+}
+
+pub struct BlockStatement {
+    pub token: Token,
+    pub statements: Vec<Box<dyn Statement>>,
+}
+
+impl Node for BlockStatement {
+    fn token_literal(&self) -> String {
+        self.token.literal.to_string()
+    }
+}
+
+impl Display for BlockStatement {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for statement in &self.statements {
+            write!(f, "{}", statement.to_string())?
+        }
+        Ok(())
+    }
+}
+
+impl Statement for BlockStatement {
     fn statement_node(&self) -> Box<dyn Node> {
         todo!()
     }
