@@ -3,14 +3,28 @@ use crate::lexer::token::Token;
 use crate::parser::expression::{Expression, Identifier};
 use crate::parser::node::Node;
 
-pub trait Statement: Node {
-    fn statement_node(&self) -> Box<dyn Node>;
+pub enum Statement {
+    LetStatement(LetStatement),
+    ReturnStatement(ReturnStatement),
+    ExpressionStatement(ExpressionStatement),
+    BlockStatement(BlockStatement),
+}
+
+impl Display for Statement {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Statement::LetStatement(s) => { write!(f, "{}", s) }
+            Statement::ReturnStatement(s) => { write!(f, "{}", s) }
+            Statement::ExpressionStatement(s) => { write!(f, "{}", s) }
+            Statement::BlockStatement(s) => { write!(f, "{}", s) }
+        }
+    }
 }
 
 pub struct LetStatement {
     pub token: Token,
     pub name: Identifier,
-    pub value: Option<Box<dyn Expression>>,
+    pub value: Option<Box<Expression>>,
 }
 
 impl Display for LetStatement {
@@ -28,15 +42,9 @@ impl Node for LetStatement {
     }
 }
 
-impl Statement for LetStatement {
-    fn statement_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
 pub struct ReturnStatement {
     pub token: Token,
-    pub value: Option<Box<dyn Expression>>,
+    pub value: Option<Box<Expression>>,
 }
 
 impl Display for ReturnStatement {
@@ -54,23 +62,17 @@ impl Node for ReturnStatement {
     }
 }
 
-impl Statement for ReturnStatement {
-    fn statement_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
 
 pub struct ExpressionStatement {
     pub token: Token,
-    pub expression: Option<Box<dyn Expression>>,
+    pub expression: Option<Box<Expression>>,
 }
 
 impl Display for ExpressionStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.expression {
             None => { write!(f, "") }
-            Some(e) => { write!(f, "{}", e.to_string()) }
+            Some(e) => { write!(f, "{}", e.as_ref().to_string()) }
         }
     }
 }
@@ -81,15 +83,9 @@ impl Node for ExpressionStatement {
     }
 }
 
-impl Statement for ExpressionStatement {
-    fn statement_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
 pub struct BlockStatement {
     pub token: Token,
-    pub statements: Vec<Box<dyn Statement>>,
+    pub statements: Vec<Statement>,
 }
 
 impl Node for BlockStatement {
@@ -104,11 +100,5 @@ impl Display for BlockStatement {
             write!(f, "{}", statement.to_string())?
         }
         Ok(())
-    }
-}
-
-impl Statement for BlockStatement {
-    fn statement_node(&self) -> Box<dyn Node> {
-        todo!()
     }
 }

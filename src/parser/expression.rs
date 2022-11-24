@@ -4,10 +4,32 @@ use std::ptr::write;
 
 use crate::lexer::token::Token;
 use crate::parser::node::Node;
-use crate::parser::statement::{Statement, BlockStatement};
+use crate::parser::statement::{BlockStatement};
 
-pub trait Expression: Node {
-    fn expression_node(&self) -> Box<dyn Node>;
+pub enum Expression {
+    Identifier(Identifier),
+    IntegerLiteral(IntegerLiteral),
+    BooleanLiteral(BooleanLiteral),
+    FunctionLiteral(FunctionLiteral),
+    PrefixExpression(PrefixExpression),
+    InfixExpression(InfixExpression),
+    IfExpression(IfExpression),
+    CallExpression(CallExpression),
+}
+
+impl Display for Expression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expression::Identifier(s) => { write!(f, "{}", s) }
+            Expression::IntegerLiteral(s) => { write!(f, "{}", s) }
+            Expression::BooleanLiteral(s) => { write!(f, "{}", s) }
+            Expression::FunctionLiteral(s) => { write!(f, "{}", s) }
+            Expression::PrefixExpression(s) => { write!(f, "{}", s) }
+            Expression::InfixExpression(s) => { write!(f, "{}", s) }
+            Expression::IfExpression(s) => { write!(f, "{}", s) }
+            Expression::CallExpression(s) => { write!(f, "{}", s) }
+        }
+    }
 }
 
 pub struct Identifier {
@@ -24,12 +46,6 @@ impl Display for Identifier {
 impl Node for Identifier {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
-    }
-}
-
-impl Expression for Identifier {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
     }
 }
 
@@ -50,39 +66,27 @@ impl Node for IntegerLiteral {
     }
 }
 
-impl Expression for IntegerLiteral {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
-pub struct Boolean {
+pub struct BooleanLiteral {
     pub token: Token,
     pub value: bool,
 }
 
-impl Node for Boolean {
+impl Node for BooleanLiteral {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
 }
 
-impl Display for Boolean {
+impl Display for BooleanLiteral {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.token.literal)
-    }
-}
-
-impl Expression for Boolean {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
     }
 }
 
 pub struct PrefixExpression {
     pub token: Token,
     pub operator: String,
-    pub right: Box<dyn Expression>,
+    pub right: Box<Expression>,
 }
 
 impl Display for PrefixExpression {
@@ -97,17 +101,11 @@ impl Node for PrefixExpression {
     }
 }
 
-impl Expression for PrefixExpression {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
 pub struct InfixExpression {
     pub token: Token,
-    pub left: Box<dyn Expression>,
+    pub left: Box<Expression>,
     pub operator: String,
-    pub right: Box<dyn Expression>,
+    pub right: Box<Expression>,
 }
 
 impl Node for InfixExpression {
@@ -122,15 +120,9 @@ impl Display for InfixExpression {
     }
 }
 
-impl Expression for InfixExpression {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
 pub struct IfExpression {
     pub token: Token,
-    pub condition: Box<dyn Expression>,
+    pub condition: Box<Expression>,
     pub consequence: BlockStatement,
     pub alternative: Option<BlockStatement>,
 }
@@ -149,12 +141,6 @@ impl Display for IfExpression {
         }
 
         Ok(())
-    }
-}
-
-impl Expression for IfExpression {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
     }
 }
 
@@ -184,16 +170,10 @@ impl Display for FunctionLiteral {
     }
 }
 
-impl Expression for FunctionLiteral {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
-    }
-}
-
 pub struct CallExpression {
     pub token: Token,
-    pub function: Box<dyn Expression>,
-    pub args: Vec<Box<dyn Expression>>,
+    pub function: Box<Expression>,
+    pub args: Vec<Box<Expression>>,
 }
 
 impl Node for CallExpression {
@@ -212,11 +192,5 @@ impl Display for CallExpression {
             None => { write!(f, "{}()", self.function) }
             Some(args) => { write!(f, "{}({})", self.function, args) }
         }
-    }
-}
-
-impl Expression for CallExpression {
-    fn expression_node(&self) -> Box<dyn Node> {
-        todo!()
     }
 }
