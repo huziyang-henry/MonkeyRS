@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 use crate::lexer::token::Token;
+use crate::object::{Object};
 use crate::parser::node::NodeOp;
 use crate::parser::statement::{BlockStatement};
 
@@ -29,6 +30,25 @@ impl Display for Expression {
     }
 }
 
+impl NodeOp for Expression {
+    fn token_literal(&self) -> String {
+        todo!()
+    }
+
+    fn eval(&self) -> Object {
+        match self {
+            Expression::Identifier(e) => { e.eval() }
+            Expression::IntegerLiteral(e) => { e.eval() }
+            Expression::BooleanLiteral(e) => { e.eval() }
+            Expression::FunctionLiteral(e) => { e.eval() }
+            Expression::PrefixExpression(e) => { e.eval() }
+            Expression::InfixExpression(e) => { e.eval() }
+            Expression::IfExpression(e) => { e.eval() }
+            Expression::CallExpression(e) => { e.eval() }
+        }
+    }
+}
+
 pub struct Identifier {
     pub token: Token,
     pub value: String,
@@ -43,6 +63,10 @@ impl Display for Identifier {
 impl NodeOp for Identifier {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
+    }
+
+    fn eval(&self) -> Object {
+        todo!()
     }
 }
 
@@ -61,6 +85,9 @@ impl NodeOp for IntegerLiteral {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
+    fn eval(&self) -> Object {
+        Object::Integer(self.value)
+    }
 }
 
 pub struct BooleanLiteral {
@@ -71,6 +98,9 @@ pub struct BooleanLiteral {
 impl NodeOp for BooleanLiteral {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
+    }
+    fn eval(&self) -> Object {
+        Object::Boolean(self.value)
     }
 }
 
@@ -96,6 +126,26 @@ impl NodeOp for PrefixExpression {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
+    fn eval(&self) -> Object {
+        let right = self.right.eval();
+
+        match self.operator.as_str() {
+            "!" => {
+                match right {
+                    Object::Boolean(b) => { Object::Boolean(!b) }
+                    Object::Null => { Object::Boolean(true) }
+                    _ => { Object::Boolean(false) }
+                }
+            }
+            "-" => {
+                match right {
+                    Object::Integer(i) => { Object::Integer(-i) }
+                    _ => { Object::Null }
+                }
+            }
+            _ => { Object::Null }
+        }
+    }
 }
 
 pub struct InfixExpression {
@@ -108,6 +158,35 @@ pub struct InfixExpression {
 impl NodeOp for InfixExpression {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
+    }
+
+    fn eval(&self) -> Object {
+        let left = self.left.eval();
+        let right = self.right.eval();
+
+        match (left, right) {
+            (Object::Integer(left_i), Object::Integer(right_i)) => {
+                match self.operator.as_str() {
+                    "+" => { Object::Integer(left_i + right_i) }
+                    "-" => { Object::Integer(left_i - right_i) }
+                    "*" => { Object::Integer(left_i * right_i) }
+                    "/" => { Object::Integer(left_i / right_i) }
+                    "<" => { Object::Boolean(left_i < right_i) }
+                    ">" => { Object::Boolean(left_i > right_i) }
+                    "==" => { Object::Boolean(left_i == right_i) }
+                    "!=" => { Object::Boolean(left_i != right_i) }
+                    _ => { Object::Null }
+                }
+            }
+            (Object::Boolean(left_b), Object::Boolean(right_b)) => {
+                match self.operator.as_str() {
+                    "==" => { Object::Boolean(left_b == right_b) }
+                    "!=" => { Object::Boolean(left_b != right_b) }
+                    _ => { Object::Null }
+                }
+            }
+            _ => { Object::Null }
+        }
     }
 }
 
@@ -127,6 +206,23 @@ pub struct IfExpression {
 impl NodeOp for IfExpression {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
+    }
+    fn eval(&self) -> Object {
+        let condition = self.condition.eval();
+        let is_true = match condition {
+            Object::Boolean(b) => { b }
+            Object::Null => { false }
+            _ => { true }
+        };
+
+        if is_true {
+            self.consequence.eval()
+        } else {
+            match &self.alternative {
+                None => { Object::Null }
+                Some(e) => { e.eval() }
+            }
+        }
     }
 }
 
@@ -150,6 +246,10 @@ pub struct FunctionLiteral {
 impl NodeOp for FunctionLiteral {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
+    }
+
+    fn eval(&self) -> Object {
+        todo!()
     }
 }
 
@@ -176,6 +276,10 @@ pub struct CallExpression {
 impl NodeOp for CallExpression {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
+    }
+
+    fn eval(&self) -> Object {
+        todo!()
     }
 }
 
