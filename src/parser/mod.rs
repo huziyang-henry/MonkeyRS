@@ -1,5 +1,5 @@
 pub mod parser;
-mod program;
-mod node;
-mod statement;
-mod expression;
+pub mod program;
+pub mod node;
+pub mod statement;
+pub mod expression;

@@ -403,11 +403,8 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use downcast_rs::Downcast;
-
-    use crate::parser::expression::{CallExpression, FunctionLiteral, IfExpression, InfixExpression, PrefixExpression};
-    use crate::parser::node::Node;
-    use crate::parser::statement;
+    use crate::parser::expression::{CallExpression, FunctionLiteral};
+    use crate::parser::node::NodeOp;
     use crate::parser::statement::ExpressionStatement;
 
     use super::*;

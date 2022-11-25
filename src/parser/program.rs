@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::parser::node::Node;
+use crate::parser::node::NodeOp;
 use crate::parser::statement::{Statement};
 
 pub struct Program {
@@ -16,7 +16,7 @@ impl Display for Program {
     }
 }
 
-impl Node for Program {
+impl NodeOp for Program {
     fn token_literal(&self) -> String {
         if self.statements.len() > 0 {
             self.statements[0].to_string()

@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use crate::lexer::token::Token;
 use crate::parser::expression::{Expression, Identifier};
-use crate::parser::node::Node;
+use crate::parser::node::NodeOp;
 
 pub enum Statement {
     LetStatement(LetStatement),
@@ -13,10 +13,10 @@ pub enum Statement {
 impl Display for Statement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Statement::LetStatement(s) => { write!(f, "{}", s) }
-            Statement::ReturnStatement(s) => { write!(f, "{}", s) }
-            Statement::ExpressionStatement(s) => { write!(f, "{}", s) }
-            Statement::BlockStatement(s) => { write!(f, "{}", s) }
+            Statement::LetStatement(s) => { s.fmt(f) }
+            Statement::ReturnStatement(s) => { s.fmt(f) }
+            Statement::ExpressionStatement(s) => { s.fmt(f) }
+            Statement::BlockStatement(s) => { s.fmt(f) }
         }
     }
 }
@@ -36,7 +36,7 @@ impl Display for LetStatement {
     }
 }
 
-impl Node for LetStatement {
+impl NodeOp for LetStatement {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
@@ -56,7 +56,7 @@ impl Display for ReturnStatement {
     }
 }
 
-impl Node for ReturnStatement {
+impl NodeOp for ReturnStatement {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
@@ -77,7 +77,7 @@ impl Display for ExpressionStatement {
     }
 }
 
-impl Node for ExpressionStatement {
+impl NodeOp for ExpressionStatement {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
@@ -88,7 +88,7 @@ pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }
 
-impl Node for BlockStatement {
+impl NodeOp for BlockStatement {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }

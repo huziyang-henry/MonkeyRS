@@ -1,9 +1,6 @@
-use std::env::args;
 use std::fmt::{Display, Formatter};
-use std::ptr::write;
-
 use crate::lexer::token::Token;
-use crate::parser::node::Node;
+use crate::parser::node::NodeOp;
 use crate::parser::statement::{BlockStatement};
 
 pub enum Expression {
@@ -20,14 +17,14 @@ pub enum Expression {
 impl Display for Expression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expression::Identifier(s) => { write!(f, "{}", s) }
-            Expression::IntegerLiteral(s) => { write!(f, "{}", s) }
-            Expression::BooleanLiteral(s) => { write!(f, "{}", s) }
-            Expression::FunctionLiteral(s) => { write!(f, "{}", s) }
-            Expression::PrefixExpression(s) => { write!(f, "{}", s) }
-            Expression::InfixExpression(s) => { write!(f, "{}", s) }
-            Expression::IfExpression(s) => { write!(f, "{}", s) }
-            Expression::CallExpression(s) => { write!(f, "{}", s) }
+            Expression::Identifier(s) => { s.fmt(f) }
+            Expression::IntegerLiteral(s) => { s.fmt(f) }
+            Expression::BooleanLiteral(s) => { s.fmt(f) }
+            Expression::FunctionLiteral(s) => { s.fmt(f) }
+            Expression::PrefixExpression(s) => { s.fmt(f) }
+            Expression::InfixExpression(s) => { s.fmt(f) }
+            Expression::IfExpression(s) => { s.fmt(f) }
+            Expression::CallExpression(s) => { s.fmt(f) }
         }
     }
 }
@@ -43,7 +40,7 @@ impl Display for Identifier {
     }
 }
 
-impl Node for Identifier {
+impl NodeOp for Identifier {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
@@ -60,7 +57,7 @@ impl Display for IntegerLiteral {
     }
 }
 
-impl Node for IntegerLiteral {
+impl NodeOp for IntegerLiteral {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
@@ -71,7 +68,7 @@ pub struct BooleanLiteral {
     pub value: bool,
 }
 
-impl Node for BooleanLiteral {
+impl NodeOp for BooleanLiteral {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
@@ -95,7 +92,7 @@ impl Display for PrefixExpression {
     }
 }
 
-impl Node for PrefixExpression {
+impl NodeOp for PrefixExpression {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
@@ -108,7 +105,7 @@ pub struct InfixExpression {
     pub right: Box<Expression>,
 }
 
-impl Node for InfixExpression {
+impl NodeOp for InfixExpression {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
@@ -127,7 +124,7 @@ pub struct IfExpression {
     pub alternative: Option<BlockStatement>,
 }
 
-impl Node for IfExpression {
+impl NodeOp for IfExpression {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
@@ -150,7 +147,7 @@ pub struct FunctionLiteral {
     pub body: BlockStatement,
 }
 
-impl Node for FunctionLiteral {
+impl NodeOp for FunctionLiteral {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
@@ -176,7 +173,7 @@ pub struct CallExpression {
     pub args: Vec<Box<Expression>>,
 }
 
-impl Node for CallExpression {
+impl NodeOp for CallExpression {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
