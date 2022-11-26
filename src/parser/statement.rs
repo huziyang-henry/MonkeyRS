@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
-use crate::lexer::token::Token;
+use crate::token::Token;
 use crate::object::Object;
 use crate::parser::expression::{Expression, Identifier};
-use crate::parser::node::NodeOp;
+use crate::evaluator::Evaluator;
 
 pub enum Statement {
     LetStatement(LetStatement),
@@ -22,11 +22,7 @@ impl Display for Statement {
     }
 }
 
-impl NodeOp for Statement {
-    fn token_literal(&self) -> String {
-        todo!()
-    }
-
+impl Evaluator for Statement {
     fn eval(&self) -> Object {
         match self {
             Statement::LetStatement(s) => { s.eval() }
@@ -39,24 +35,20 @@ impl NodeOp for Statement {
 
 pub struct LetStatement {
     pub token: Token,
-    pub name: Identifier,
+    pub identifier: Identifier,
     pub value: Option<Box<Expression>>,
 }
 
 impl Display for LetStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.value {
-            None => { write!(f, "{} {};", self.token.literal, self.name) }
-            Some(e) => { write!(f, "{} {} = {};", self.token.literal, self.name, e.to_string()) }
+            None => { write!(f, "{} {};", self.token, self.identifier) }
+            Some(e) => { write!(f, "{} {} = {};", self.token, self.identifier, e) }
         }
     }
 }
 
-impl NodeOp for LetStatement {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
-
+impl Evaluator for LetStatement {
     fn eval(&self) -> Object {
         todo!()
     }
@@ -70,16 +62,13 @@ pub struct ReturnStatement {
 impl Display for ReturnStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.value {
-            None => { write!(f, "{};", self.token.literal) }
-            Some(e) => { write!(f, "{} {};", self.token.literal, e.to_string()) }
+            None => { write!(f, "{};", self.token) }
+            Some(e) => { write!(f, "{} {};", self.token, e) }
         }
     }
 }
 
-impl NodeOp for ReturnStatement {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
+impl Evaluator for ReturnStatement {
     fn eval(&self) -> Object {
         let v = match &self.value {
             None => { Object::Null }
@@ -105,11 +94,7 @@ impl Display for ExpressionStatement {
     }
 }
 
-impl NodeOp for ExpressionStatement {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
-
+impl Evaluator for ExpressionStatement {
     fn eval(&self) -> Object {
         match &self.expression {
             None => { Object::Null }
@@ -123,10 +108,7 @@ pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }
 
-impl NodeOp for BlockStatement {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
+impl Evaluator for BlockStatement {
     fn eval(&self) -> Object {
         let mut result = Object::Null;
 

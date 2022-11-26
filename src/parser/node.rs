@@ -9,8 +9,3 @@ pub enum Node {
     StatementNode(Statement),
     ExpressionNode(Expression),
 }
-
-pub trait NodeOp: Display {
-    fn token_literal(&self) -> String;
-    fn eval(&self) -> Object;
-}

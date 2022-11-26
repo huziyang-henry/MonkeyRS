@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 use crate::object::Object;
-use crate::parser::node::NodeOp;
+use crate::evaluator::Evaluator;
 use crate::parser::statement::{Statement};
 
 pub struct Program {
@@ -17,15 +17,7 @@ impl Display for Program {
     }
 }
 
-impl NodeOp for Program {
-    fn token_literal(&self) -> String {
-        if self.statements.len() > 0 {
-            self.statements[0].to_string()
-        } else {
-            String::default()
-        }
-    }
-
+impl Evaluator for Program {
     fn eval(&self) -> Object {
         let mut result = Object::Null;
         for stmt in &self.statements {

@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
-use crate::lexer::token::Token;
+use crate::token::Token;
 use crate::object::{Object};
-use crate::parser::node::NodeOp;
+use crate::evaluator::Evaluator;
 use crate::parser::statement::{BlockStatement};
 
 pub enum Expression {
@@ -30,10 +30,7 @@ impl Display for Expression {
     }
 }
 
-impl NodeOp for Expression {
-    fn token_literal(&self) -> String {
-        todo!()
-    }
+impl Evaluator for Expression {
 
     fn eval(&self) -> Object {
         match self {
@@ -51,20 +48,15 @@ impl NodeOp for Expression {
 
 pub struct Identifier {
     pub token: Token,
-    pub value: String,
 }
 
 impl Display for Identifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
+        write!(f, "{}", self.token)
     }
 }
 
-impl NodeOp for Identifier {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
-
+impl Evaluator for Identifier {
     fn eval(&self) -> Object {
         todo!()
     }
@@ -77,14 +69,11 @@ pub struct IntegerLiteral {
 
 impl Display for IntegerLiteral {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.token.literal)
+        write!(f, "{}", self.token)
     }
 }
 
-impl NodeOp for IntegerLiteral {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
+impl Evaluator for IntegerLiteral {
     fn eval(&self) -> Object {
         Object::Integer(self.value)
     }
@@ -95,10 +84,7 @@ pub struct BooleanLiteral {
     pub value: bool,
 }
 
-impl NodeOp for BooleanLiteral {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
+impl Evaluator for BooleanLiteral {
     fn eval(&self) -> Object {
         Object::Boolean(self.value)
     }
@@ -106,38 +92,34 @@ impl NodeOp for BooleanLiteral {
 
 impl Display for BooleanLiteral {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.token.literal)
+        write!(f, "{}", self.token)
     }
 }
 
 pub struct PrefixExpression {
     pub token: Token,
-    pub operator: String,
     pub right: Box<Expression>,
 }
 
 impl Display for PrefixExpression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}{})", self.operator, self.right)
+        write!(f, "({}{})", self.token, self.right)
     }
 }
 
-impl NodeOp for PrefixExpression {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
+impl Evaluator for PrefixExpression {
     fn eval(&self) -> Object {
         let right = self.right.eval();
 
-        match self.operator.as_str() {
-            "!" => {
+        match &self.token {
+            Token::BANG => {
                 match right {
                     Object::Boolean(b) => { Object::Boolean(!b) }
                     Object::Null => { Object::Boolean(true) }
                     _ => { Object::Boolean(false) }
                 }
             }
-            "-" => {
+            Token::MINUS => {
                 match right {
                     Object::Integer(i) => { Object::Integer(-i) }
                     _ => { Object::Null }
@@ -151,14 +133,10 @@ impl NodeOp for PrefixExpression {
 pub struct InfixExpression {
     pub token: Token,
     pub left: Box<Expression>,
-    pub operator: String,
     pub right: Box<Expression>,
 }
 
-impl NodeOp for InfixExpression {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
+impl Evaluator for InfixExpression {
 
     fn eval(&self) -> Object {
         let left = self.left.eval();
@@ -166,22 +144,22 @@ impl NodeOp for InfixExpression {
 
         match (left, right) {
             (Object::Integer(left_i), Object::Integer(right_i)) => {
-                match self.operator.as_str() {
-                    "+" => { Object::Integer(left_i + right_i) }
-                    "-" => { Object::Integer(left_i - right_i) }
-                    "*" => { Object::Integer(left_i * right_i) }
-                    "/" => { Object::Integer(left_i / right_i) }
-                    "<" => { Object::Boolean(left_i < right_i) }
-                    ">" => { Object::Boolean(left_i > right_i) }
-                    "==" => { Object::Boolean(left_i == right_i) }
-                    "!=" => { Object::Boolean(left_i != right_i) }
+                match self.token {
+                    Token::PLUS => { Object::Integer(left_i + right_i) }
+                    Token::MINUS => { Object::Integer(left_i - right_i) }
+                    Token::ASTERISK => { Object::Integer(left_i * right_i) }
+                    Token::SLASH => { Object::Integer(left_i / right_i) }
+                    Token::LT => { Object::Boolean(left_i < right_i) }
+                    Token::GT => { Object::Boolean(left_i > right_i) }
+                    Token::EQ => { Object::Boolean(left_i == right_i) }
+                    Token::NEQ => { Object::Boolean(left_i != right_i) }
                     _ => { Object::Null }
                 }
             }
             (Object::Boolean(left_b), Object::Boolean(right_b)) => {
-                match self.operator.as_str() {
-                    "==" => { Object::Boolean(left_b == right_b) }
-                    "!=" => { Object::Boolean(left_b != right_b) }
+                match self.token {
+                    Token::EQ => { Object::Boolean(left_b == right_b) }
+                    Token::NEQ => { Object::Boolean(left_b != right_b) }
                     _ => { Object::Null }
                 }
             }
@@ -192,7 +170,7 @@ impl NodeOp for InfixExpression {
 
 impl Display for InfixExpression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({} {} {})", self.left, self.operator, self.right)
+        write!(f, "({} {} {})", self.left, self.token, self.right)
     }
 }
 
@@ -203,10 +181,7 @@ pub struct IfExpression {
     pub alternative: Option<BlockStatement>,
 }
 
-impl NodeOp for IfExpression {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
+impl Evaluator for IfExpression {
     fn eval(&self) -> Object {
         let condition = self.condition.eval();
         let is_true = match condition {
@@ -243,10 +218,7 @@ pub struct FunctionLiteral {
     pub body: BlockStatement,
 }
 
-impl NodeOp for FunctionLiteral {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
+impl Evaluator for FunctionLiteral {
 
     fn eval(&self) -> Object {
         todo!()
@@ -261,8 +233,8 @@ impl Display for FunctionLiteral {
             .reduce(|a, b| format!("{}, {}", a, b));
 
         match params {
-            None => { write!(f, "{} () {}", self.token_literal(), self.body) }
-            Some(p) => { write!(f, "{} ({}) {}", self.token_literal(), p, self.body) }
+            None => { write!(f, "{} () {}", self.token, self.body) }
+            Some(p) => { write!(f, "{} ({}) {}", self.token, p, self.body) }
         }
     }
 }
@@ -273,10 +245,7 @@ pub struct CallExpression {
     pub args: Vec<Box<Expression>>,
 }
 
-impl NodeOp for CallExpression {
-    fn token_literal(&self) -> String {
-        self.token.literal.to_string()
-    }
+impl Evaluator for CallExpression {
 
     fn eval(&self) -> Object {
         todo!()

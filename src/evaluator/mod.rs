@@ -1,54 +1,24 @@
-use crate::object::{Object};
+use std::fmt::Display;
+use crate::object::Object;
 use crate::parser::expression::Expression;
 use crate::parser::node::Node;
 use crate::parser::statement::Statement;
 
-// fn eval(node: &Node) -> Object {
-//     match node {
-//         Node::ProgramNode(_) => {}
-//         Node::StatementNode(s) => {
-//             match s {
-//                 Statement::LetStatement(_) => {}
-//                 Statement::ReturnStatement(_) => {}
-//                 Statement::ExpressionStatement(stmt) => {
-//                     // let exp = stmt.expression.as_ref().unwrap().as_ref();
-//                     // eval(Node::ExpressionNode(exp.clone()));
-//                 }
-//                 Statement::BlockStatement(_) => {}
-//             }
-//         }
-//         Node::ExpressionNode(e) => {
-//             match e {
-//                 Expression::Identifier(_) => {}
-//                 Expression::IntegerLiteral(exp) => { Object::Integer(Integer { value: exp.value }) }
-//                 Expression::BooleanLiteral(_) => {}
-//                 Expression::FunctionLiteral(_) => {}
-//                 Expression::PrefixExpression(_) => {}
-//                 Expression::InfixExpression(_) => {}
-//                 Expression::IfExpression(_) => {}
-//                 Expression::CallExpression(_) => {}
-//             }
-//         }
-//     }
-//     todo!()
-// }
+pub trait Evaluator: Display {
+    fn eval(&self) -> Object;
+}
 
-//
-// fn eval_statements(stmts: &Vec<Statement>) -> Object {
-//     todo!()
-// }
-//
 #[cfg(test)]
 mod test {
     use std::fmt::Pointer;
-    // use crate::evaluator::eval;
-    use crate::lexer::lexer::Lexer;
-    use crate::lexer::token::{Token, TokenType};
-    use crate::object::{Object};
+    use crate::evaluator::Evaluator;
+    use crate::lexer::Lexer;
+    use crate::token::Token;
+    use crate::object::Object;
     use crate::parser::expression::{BooleanLiteral, Expression, IntegerLiteral};
-    use crate::parser::node::{Node, NodeOp};
+    use crate::parser::node::Node;
     use crate::parser::node::Node::ProgramNode;
-    use crate::parser::parser::Parser;
+    use crate::parser::Parser;
 
     #[test]
     fn test_eval_integer_expression() {
@@ -69,8 +39,6 @@ mod test {
             ("3 * (3 * 3) + 10", 37),
             ("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50),
         ];
-
-        println!("{:?}", test_input);
 
 
         for input in test_input {
@@ -145,7 +113,7 @@ mod test {
             ("return 2 * 5; 9;", 10),
             ("9; return 2 * 5; 9;", 10),
             (
-"if (10 > 1) {
+                "if (10 > 1) {
   if (10 > 1) {
     return 10;
   }
@@ -162,3 +130,5 @@ mod test {
         }
     }
 }
+
+
