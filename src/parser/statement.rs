@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 use crate::token::Token;
-use crate::object::Object;
+use crate::object::{Object, ObjectError};
 use crate::parser::expression::{Expression, Identifier};
 use crate::evaluator::Evaluator;
 
@@ -23,7 +23,7 @@ impl Display for Statement {
 }
 
 impl Evaluator for Statement {
-    fn eval(&self) -> Object {
+    fn eval(&self) -> Result<Object, ObjectError> {
         match self {
             Statement::LetStatement(s) => { s.eval() }
             Statement::ReturnStatement(s) => { s.eval() }
@@ -49,7 +49,7 @@ impl Display for LetStatement {
 }
 
 impl Evaluator for LetStatement {
-    fn eval(&self) -> Object {
+    fn eval(&self) -> Result<Object, ObjectError> {
         todo!()
     }
 }
@@ -69,13 +69,13 @@ impl Display for ReturnStatement {
 }
 
 impl Evaluator for ReturnStatement {
-    fn eval(&self) -> Object {
+    fn eval(&self) -> Result<Object, ObjectError> {
         let v = match &self.value {
-            None => { Object::Null }
+            None => { Ok(Object::Null) }
             Some(v) => { v.eval() }
-        };
+        }?;
 
-        Object::Return(Box::new(v))
+        Ok(Object::Return(Box::new(v)))
     }
 }
 
@@ -89,17 +89,17 @@ impl Display for ExpressionStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.expression {
             None => { write!(f, "") }
-            Some(e) => { write!(f, "{}", e.as_ref().to_string()) }
+            Some(e) => { write!(f, "{}", e) }
         }
     }
 }
 
 impl Evaluator for ExpressionStatement {
-    fn eval(&self) -> Object {
-        match &self.expression {
+    fn eval(&self) -> Result<Object, ObjectError> {
+        Ok(match &self.expression {
             None => { Object::Null }
-            Some(e) => { e.eval() }
-        }
+            Some(e) => { e.eval()? }
+        })
     }
 }
 
@@ -109,25 +109,25 @@ pub struct BlockStatement {
 }
 
 impl Evaluator for BlockStatement {
-    fn eval(&self) -> Object {
+    fn eval(&self) -> Result<Object, ObjectError> {
         let mut result = Object::Null;
 
         for stmt in &self.statements {
-            result = stmt.eval();
+            result = stmt.eval()?;
 
-            if let Object::Return(r) = result {
-                return Object::Return(r);
+            if matches!(result, Object::Return(_)) {
+                return Ok(result);
             }
         }
 
-        result
+        Ok(result)
     }
 }
 
 impl Display for BlockStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for statement in &self.statements {
-            write!(f, "{}", statement.to_string())?
+            write!(f, "{}", statement)?
         }
         Ok(())
     }

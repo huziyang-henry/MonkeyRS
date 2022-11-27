@@ -1,11 +1,11 @@
 use std::fmt::Display;
-use crate::object::Object;
+use crate::object::{Object, ObjectError};
 use crate::parser::expression::Expression;
 use crate::parser::node::Node;
 use crate::parser::statement::Statement;
 
 pub trait Evaluator: Display {
-    fn eval(&self) -> Object;
+    fn eval(&self) -> Result<Object, ObjectError>;
 }
 
 #[cfg(test)]
@@ -14,7 +14,7 @@ mod test {
     use crate::evaluator::Evaluator;
     use crate::lexer::Lexer;
     use crate::token::Token;
-    use crate::object::Object;
+    use crate::object::{Object, ObjectError};
     use crate::parser::expression::{BooleanLiteral, Expression, IntegerLiteral};
     use crate::parser::node::Node;
     use crate::parser::node::Node::ProgramNode;
@@ -45,8 +45,7 @@ mod test {
             let mut parser = Parser::new(Lexer::new(input.0));
             let program = parser.parse_program();
 
-            assert_eq!(program.statements.len(), 1);
-            assert_eq!(program.statements[0].eval(), Object::Integer(input.1));
+            assert_eq!(program.eval(), Ok(Object::Integer(input.1)));
         }
     }
 
@@ -75,8 +74,7 @@ mod test {
             let mut parser = Parser::new(Lexer::new(input.0));
             let program = parser.parse_program();
 
-            assert_eq!(program.statements.len(), 1);
-            assert_eq!(program.statements[0].eval(), Object::Boolean(input.1));
+            assert_eq!(program.eval(), Ok(Object::Boolean(input.1)));
         }
     }
 
@@ -96,10 +94,8 @@ mod test {
             let mut parser = Parser::new(Lexer::new(input.0));
             let program = parser.parse_program();
 
-            assert_eq!(program.statements.len(), 1);
-
-            match program.statements[0].eval() {
-                Object::Integer(v) => { assert_eq!(Some(v), input.1) }
+            match program.eval() {
+                Ok(Object::Integer(v)) => { assert_eq!(Some(v), input.1) }
                 _ => { assert_eq!(None, input.1) }
             }
         }
@@ -126,7 +122,56 @@ mod test {
             let mut parser = Parser::new(Lexer::new(input.0));
             let program = parser.parse_program();
 
-            assert_eq!(program.eval(), Object::Integer(input.1))
+            assert_eq!(program.eval(), Ok(Object::Integer(input.1)))
+        }
+    }
+
+    #[test]
+    fn test_error_handling() {
+        let test_input = vec![
+            (
+                "5 + true;",
+                "type mismatch: Integer(5) + Boolean(true)",
+            ),
+            (
+                "5 + true; 5;",
+                "type mismatch: Integer(5) + Boolean(true)",
+            ),
+            (
+                "-true",
+                "unknown operator: -Boolean(true)",
+            ),
+            (
+                "true + false;",
+                "unknown operator: Boolean(true) + Boolean(false)",
+            ),
+            (
+                "5; true + false; 5",
+                "unknown operator: Boolean(true) + Boolean(false)",
+            ),
+            (
+                "if (10 > 1) { true + false; }",
+                "unknown operator: Boolean(true) + Boolean(false)",
+            ),
+            (
+                "
+if (10 > 1) {
+  if (10 > 1) {
+    return true + false;
+  }
+
+  return 1;
+}
+",
+                "unknown operator: Boolean(true) + Boolean(false)",
+            ),
+        ];
+
+        for input in test_input {
+            let mut parser = Parser::new(Lexer::new(input.0));
+            let program = parser.parse_program();
+
+            assert_eq!(program.eval(), Err(ObjectError::new(input.1.to_string())));
         }
     }
 }

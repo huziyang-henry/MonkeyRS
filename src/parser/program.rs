@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::object::Object;
+use crate::object::{Object, ObjectError};
 use crate::evaluator::Evaluator;
 use crate::parser::statement::{Statement};
 
@@ -18,16 +18,16 @@ impl Display for Program {
 }
 
 impl Evaluator for Program {
-    fn eval(&self) -> Object {
+    fn eval(&self) -> Result<Object, ObjectError> {
         let mut result = Object::Null;
         for stmt in &self.statements {
-            result = stmt.eval();
+            result = stmt.eval()?;
 
             if let Object::Return(r) = result {
-                return *r;
+                return Ok(*r);
             }
         }
 
-        result
+        Ok(result)
     }
 }

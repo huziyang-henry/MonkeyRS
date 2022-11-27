@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 use crate::token::Token;
-use crate::object::{Object};
+use crate::object::{Object, ObjectError};
 use crate::evaluator::Evaluator;
 use crate::parser::statement::{BlockStatement};
 
@@ -31,8 +31,7 @@ impl Display for Expression {
 }
 
 impl Evaluator for Expression {
-
-    fn eval(&self) -> Object {
+    fn eval(&self) -> Result<Object, ObjectError> {
         match self {
             Expression::Identifier(e) => { e.eval() }
             Expression::IntegerLiteral(e) => { e.eval() }
@@ -57,7 +56,7 @@ impl Display for Identifier {
 }
 
 impl Evaluator for Identifier {
-    fn eval(&self) -> Object {
+    fn eval(&self) -> Result<Object, ObjectError> {
         todo!()
     }
 }
@@ -74,8 +73,8 @@ impl Display for IntegerLiteral {
 }
 
 impl Evaluator for IntegerLiteral {
-    fn eval(&self) -> Object {
-        Object::Integer(self.value)
+    fn eval(&self) -> Result<Object, ObjectError> {
+        Ok(Object::Integer(self.value))
     }
 }
 
@@ -85,8 +84,8 @@ pub struct BooleanLiteral {
 }
 
 impl Evaluator for BooleanLiteral {
-    fn eval(&self) -> Object {
-        Object::Boolean(self.value)
+    fn eval(&self) -> Result<Object, ObjectError> {
+        Ok(Object::Boolean(self.value))
     }
 }
 
@@ -108,24 +107,24 @@ impl Display for PrefixExpression {
 }
 
 impl Evaluator for PrefixExpression {
-    fn eval(&self) -> Object {
-        let right = self.right.eval();
+    fn eval(&self) -> Result<Object, ObjectError> {
+        let right = self.right.eval()?;
 
         match &self.token {
             Token::BANG => {
-                match right {
+                Ok(match right {
                     Object::Boolean(b) => { Object::Boolean(!b) }
                     Object::Null => { Object::Boolean(true) }
                     _ => { Object::Boolean(false) }
-                }
+                })
             }
             Token::MINUS => {
                 match right {
-                    Object::Integer(i) => { Object::Integer(-i) }
-                    _ => { Object::Null }
+                    Object::Integer(i) => { Ok(Object::Integer(-i)) }
+                    _ => { Err(ObjectError::new(format!("unknown operator: -{}", right))) }
                 }
             }
-            _ => { Object::Null }
+            _ => { Err(ObjectError::new(format!("unknown operator: {}{}", self.token, right))) }
         }
     }
 }
@@ -137,33 +136,32 @@ pub struct InfixExpression {
 }
 
 impl Evaluator for InfixExpression {
+    fn eval(&self) -> Result<Object, ObjectError> {
+        let left = self.left.eval()?;
+        let right = self.right.eval()?;
 
-    fn eval(&self) -> Object {
-        let left = self.left.eval();
-        let right = self.right.eval();
-
-        match (left, right) {
+        match (&left, &right) {
             (Object::Integer(left_i), Object::Integer(right_i)) => {
                 match self.token {
-                    Token::PLUS => { Object::Integer(left_i + right_i) }
-                    Token::MINUS => { Object::Integer(left_i - right_i) }
-                    Token::ASTERISK => { Object::Integer(left_i * right_i) }
-                    Token::SLASH => { Object::Integer(left_i / right_i) }
-                    Token::LT => { Object::Boolean(left_i < right_i) }
-                    Token::GT => { Object::Boolean(left_i > right_i) }
-                    Token::EQ => { Object::Boolean(left_i == right_i) }
-                    Token::NEQ => { Object::Boolean(left_i != right_i) }
-                    _ => { Object::Null }
+                    Token::PLUS => { Ok(Object::Integer(left_i + right_i)) }
+                    Token::MINUS => { Ok(Object::Integer(left_i - right_i)) }
+                    Token::ASTERISK => { Ok(Object::Integer(left_i * right_i)) }
+                    Token::SLASH => { Ok(Object::Integer(left_i / right_i)) }
+                    Token::LT => { Ok(Object::Boolean(left_i < right_i)) }
+                    Token::GT => { Ok(Object::Boolean(left_i > right_i)) }
+                    Token::EQ => { Ok(Object::Boolean(left_i == right_i)) }
+                    Token::NEQ => { Ok(Object::Boolean(left_i != right_i)) }
+                    _ => { Err(ObjectError::new(format!("unknown operator: {} {} {}", left, self.token, right))) }
                 }
             }
             (Object::Boolean(left_b), Object::Boolean(right_b)) => {
                 match self.token {
-                    Token::EQ => { Object::Boolean(left_b == right_b) }
-                    Token::NEQ => { Object::Boolean(left_b != right_b) }
-                    _ => { Object::Null }
+                    Token::EQ => { Ok(Object::Boolean(left_b == right_b)) }
+                    Token::NEQ => { Ok(Object::Boolean(left_b != right_b)) }
+                    _ => { Err(ObjectError::new(format!("unknown operator: {} {} {}", left, self.token, right))) }
                 }
             }
-            _ => { Object::Null }
+            _ => { Err(ObjectError::new(format!("type mismatch: {} {} {}", left, self.token, right))) }
         }
     }
 }
@@ -182,8 +180,8 @@ pub struct IfExpression {
 }
 
 impl Evaluator for IfExpression {
-    fn eval(&self) -> Object {
-        let condition = self.condition.eval();
+    fn eval(&self) -> Result<Object, ObjectError> {
+        let condition = self.condition.eval()?;
         let is_true = match condition {
             Object::Boolean(b) => { b }
             Object::Null => { false }
@@ -193,10 +191,12 @@ impl Evaluator for IfExpression {
         if is_true {
             self.consequence.eval()
         } else {
-            match &self.alternative {
+            let result = match &self.alternative {
                 None => { Object::Null }
-                Some(e) => { e.eval() }
-            }
+                Some(e) => { e.eval()? }
+            };
+
+            Ok(result)
         }
     }
 }
@@ -219,8 +219,7 @@ pub struct FunctionLiteral {
 }
 
 impl Evaluator for FunctionLiteral {
-
-    fn eval(&self) -> Object {
+    fn eval(&self) -> Result<Object, ObjectError> {
         todo!()
     }
 }
@@ -246,8 +245,7 @@ pub struct CallExpression {
 }
 
 impl Evaluator for CallExpression {
-
-    fn eval(&self) -> Object {
+    fn eval(&self) -> Result<Object, ObjectError> {
         todo!()
     }
 }
