@@ -1,6 +1,9 @@
+use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
+use std::rc::Rc;
 use crate::object::{Object, ObjectError};
 use crate::evaluator::Evaluator;
+use crate::object::environment::Environment;
 use crate::parser::statement::{Statement};
 
 pub struct Program {
@@ -18,10 +21,10 @@ impl Display for Program {
 }
 
 impl Evaluator for Program {
-    fn eval(&self) -> Result<Object, ObjectError> {
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
         let mut result = Object::Null;
         for stmt in &self.statements {
-            result = stmt.eval()?;
+            result = stmt.eval(Rc::clone(&env))?;
 
             if let Object::Return(r) = result {
                 return Ok(*r);

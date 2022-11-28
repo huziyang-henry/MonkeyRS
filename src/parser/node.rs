@@ -1,5 +1,3 @@
-use std::fmt::Display;
-use crate::object::Object;
 use crate::parser::expression::Expression;
 use crate::parser::program::Program;
 use crate::parser::statement::Statement;

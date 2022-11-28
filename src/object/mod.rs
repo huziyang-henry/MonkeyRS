@@ -1,11 +1,20 @@
-use std::fmt::{Display, Formatter, write};
+use std::cell::RefCell;
+use std::fmt::{Display, Formatter};
+use std::rc::Rc;
 
-#[derive(PartialEq, Debug)]
+use crate::object::environment::Environment;
+use crate::parser::expression::Identifier;
+use crate::parser::statement::BlockStatement;
+
+pub mod environment;
+
+#[derive(PartialEq, Debug, Clone)]
 pub enum Object {
     Integer(i64),
     Boolean(bool),
     Null,
     Return(Box<Object>),
+    Function(Function),
 }
 
 impl Display for Object {
@@ -15,6 +24,7 @@ impl Display for Object {
             Object::Boolean(b) => { write!(f, "Boolean({})", b) }
             Object::Null => { write!(f, "Null") }
             Object::Return(r) => { write!(f, "{}", r) }
+            Object::Function(func) => { write!(f, "{}", func) }
         }
     }
 }
@@ -33,5 +43,32 @@ impl Display for ObjectError {
 impl ObjectError {
     pub fn new(message: String) -> Self {
         ObjectError { message }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Function {
+    pub parameters: Vec<Identifier>,
+    pub body: BlockStatement,
+    pub env: Rc<RefCell<Environment>>,
+}
+
+impl Display for Function {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let paras = self.parameters
+            .iter()
+            .map(|i| format!("{}", i))
+            .reduce(|a, b| format!("{}, {}", a, b));
+
+        match paras {
+            None => { write!(f, "fn(){{\n{}\n}}", self.body) }
+            Some(s) => { write!(f, "fn({}){{\n{}\n}}", s, self.body) }
+        }
+    }
+}
+
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        self.parameters == other.parameters && self.body == other.body
     }
 }

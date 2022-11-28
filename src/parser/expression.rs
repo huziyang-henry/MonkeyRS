@@ -1,9 +1,13 @@
+use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
+use std::rc::Rc;
 use crate::token::Token;
-use crate::object::{Object, ObjectError};
+use crate::object::{Function, Object, ObjectError};
 use crate::evaluator::Evaluator;
+use crate::object::environment::Environment;
 use crate::parser::statement::{BlockStatement};
 
+#[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
@@ -31,20 +35,21 @@ impl Display for Expression {
 }
 
 impl Evaluator for Expression {
-    fn eval(&self) -> Result<Object, ObjectError> {
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
         match self {
-            Expression::Identifier(e) => { e.eval() }
-            Expression::IntegerLiteral(e) => { e.eval() }
-            Expression::BooleanLiteral(e) => { e.eval() }
-            Expression::FunctionLiteral(e) => { e.eval() }
-            Expression::PrefixExpression(e) => { e.eval() }
-            Expression::InfixExpression(e) => { e.eval() }
-            Expression::IfExpression(e) => { e.eval() }
-            Expression::CallExpression(e) => { e.eval() }
+            Expression::Identifier(e) => { e.eval(env) }
+            Expression::IntegerLiteral(e) => { e.eval(env) }
+            Expression::BooleanLiteral(e) => { e.eval(env) }
+            Expression::FunctionLiteral(e) => { e.eval(env) }
+            Expression::PrefixExpression(e) => { e.eval(env) }
+            Expression::InfixExpression(e) => { e.eval(env) }
+            Expression::IfExpression(e) => { e.eval(env) }
+            Expression::CallExpression(e) => { e.eval(env) }
         }
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct Identifier {
     pub token: Token,
 }
@@ -56,11 +61,17 @@ impl Display for Identifier {
 }
 
 impl Evaluator for Identifier {
-    fn eval(&self) -> Result<Object, ObjectError> {
-        todo!()
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
+        let env_borrow = env.borrow();
+        let value = env_borrow.get(self.token.literal());
+        match value {
+            None => { Err(ObjectError::new(format!("identifier not found: {}", self.token))) }
+            Some(v) => { Ok(v.clone()) }
+        }
     }
 }
 
+#[derive(PartialEq, Debug, Clone)]
 pub struct IntegerLiteral {
     pub token: Token,
     pub value: i64,
@@ -73,18 +84,19 @@ impl Display for IntegerLiteral {
 }
 
 impl Evaluator for IntegerLiteral {
-    fn eval(&self) -> Result<Object, ObjectError> {
+    fn eval(&self, _env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
         Ok(Object::Integer(self.value))
     }
 }
 
+#[derive(PartialEq, Debug, Clone)]
 pub struct BooleanLiteral {
     pub token: Token,
     pub value: bool,
 }
 
 impl Evaluator for BooleanLiteral {
-    fn eval(&self) -> Result<Object, ObjectError> {
+    fn eval(&self, _env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
         Ok(Object::Boolean(self.value))
     }
 }
@@ -95,6 +107,7 @@ impl Display for BooleanLiteral {
     }
 }
 
+#[derive(PartialEq, Debug, Clone)]
 pub struct PrefixExpression {
     pub token: Token,
     pub right: Box<Expression>,
@@ -107,8 +120,8 @@ impl Display for PrefixExpression {
 }
 
 impl Evaluator for PrefixExpression {
-    fn eval(&self) -> Result<Object, ObjectError> {
-        let right = self.right.eval()?;
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
+        let right = self.right.eval(env)?;
 
         match &self.token {
             Token::BANG => {
@@ -129,6 +142,7 @@ impl Evaluator for PrefixExpression {
     }
 }
 
+#[derive(PartialEq, Debug, Clone)]
 pub struct InfixExpression {
     pub token: Token,
     pub left: Box<Expression>,
@@ -136,9 +150,9 @@ pub struct InfixExpression {
 }
 
 impl Evaluator for InfixExpression {
-    fn eval(&self) -> Result<Object, ObjectError> {
-        let left = self.left.eval()?;
-        let right = self.right.eval()?;
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
+        let left = self.left.eval(Rc::clone(&env))?;
+        let right = self.right.eval(Rc::clone(&env))?;
 
         match (&left, &right) {
             (Object::Integer(left_i), Object::Integer(right_i)) => {
@@ -172,6 +186,7 @@ impl Display for InfixExpression {
     }
 }
 
+#[derive(PartialEq, Debug, Clone)]
 pub struct IfExpression {
     pub token: Token,
     pub condition: Box<Expression>,
@@ -180,8 +195,8 @@ pub struct IfExpression {
 }
 
 impl Evaluator for IfExpression {
-    fn eval(&self) -> Result<Object, ObjectError> {
-        let condition = self.condition.eval()?;
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
+        let condition = self.condition.eval(Rc::clone(&env))?;
         let is_true = match condition {
             Object::Boolean(b) => { b }
             Object::Null => { false }
@@ -189,11 +204,11 @@ impl Evaluator for IfExpression {
         };
 
         if is_true {
-            self.consequence.eval()
+            self.consequence.eval(Rc::clone(&env))
         } else {
             let result = match &self.alternative {
                 None => { Object::Null }
-                Some(e) => { e.eval()? }
+                Some(e) => { e.eval(Rc::clone(&env))? }
             };
 
             Ok(result)
@@ -212,6 +227,7 @@ impl Display for IfExpression {
     }
 }
 
+#[derive(PartialEq, Debug, Clone)]
 pub struct FunctionLiteral {
     pub token: Token,
     pub parameters: Vec<Identifier>,
@@ -219,8 +235,12 @@ pub struct FunctionLiteral {
 }
 
 impl Evaluator for FunctionLiteral {
-    fn eval(&self) -> Result<Object, ObjectError> {
-        todo!()
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
+        Ok(Object::Function(Function {
+            parameters: self.parameters.clone(),
+            body: self.body.clone(),
+            env: Rc::clone(&env),
+        }))
     }
 }
 
@@ -238,6 +258,7 @@ impl Display for FunctionLiteral {
     }
 }
 
+#[derive(PartialEq, Debug, Clone)]
 pub struct CallExpression {
     pub token: Token,
     pub function: Box<Expression>,
@@ -245,8 +266,28 @@ pub struct CallExpression {
 }
 
 impl Evaluator for CallExpression {
-    fn eval(&self) -> Result<Object, ObjectError> {
-        todo!()
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
+        let function = self.function.eval(Rc::clone(&env))?;
+        let mut arg_result_vec = vec![];
+        for arg in &self.args {
+            let arg_result = arg.eval(Rc::clone(&env))?;
+            arg_result_vec.push(arg_result);
+        }
+
+        match function {
+            Object::Function(f) => {
+                let mut enclosed_env = Environment::new_enclosed(Rc::clone(&env));
+                for (i, para) in (&f.parameters).iter().enumerate() {
+                    enclosed_env.set(para.token.literal(), arg_result_vec[i].clone());
+                }
+                let result = f.body.eval(Rc::new(RefCell::new(enclosed_env)))?;
+                Ok(match result {
+                    Object::Return(r) => { *r }
+                    _ => { result }
+                })
+            }
+            _ => { Err(ObjectError::new(format!("not a function: {}", function))) }
+        }
     }
 }
 
