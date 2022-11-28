@@ -236,11 +236,11 @@ pub struct FunctionLiteral {
 
 impl Evaluator for FunctionLiteral {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
-        Ok(Object::Function(Function {
+        Ok(Object::Function(Rc::new(Function {
             parameters: self.parameters.clone(),
             body: self.body.clone(),
             env: Rc::clone(&env),
-        }))
+        })))
     }
 }
 
@@ -267,26 +267,27 @@ pub struct CallExpression {
 
 impl Evaluator for CallExpression {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
-        let function = self.function.eval(Rc::clone(&env))?;
-        let mut arg_result_vec = vec![];
+        let function_obj = self.function.eval(Rc::clone(&env))?;
+        let mut arg_objs = vec![];
         for arg in &self.args {
             let arg_result = arg.eval(Rc::clone(&env))?;
-            arg_result_vec.push(arg_result);
+            arg_objs.push(arg_result);
         }
 
-        match function {
-            Object::Function(f) => {
-                let mut enclosed_env = Environment::new_enclosed(Rc::clone(&env));
-                for (i, para) in (&f.parameters).iter().enumerate() {
-                    enclosed_env.set(para.token.literal(), arg_result_vec[i].clone());
+        match function_obj {
+            Object::Function(func) => {
+                let mut enclosed_env = Environment::new_enclosed(Rc::clone(&func.env));
+                for (i, para) in (&func.parameters).iter().enumerate() {
+                    enclosed_env.set(para.token.literal(), arg_objs[i].clone());
                 }
-                let result = f.body.eval(Rc::new(RefCell::new(enclosed_env)))?;
+                
+                let result = func.body.eval(Rc::new(RefCell::new(enclosed_env)))?;
                 Ok(match result {
                     Object::Return(r) => { *r }
                     _ => { result }
                 })
             }
-            _ => { Err(ObjectError::new(format!("not a function: {}", function))) }
+            _ => { Err(ObjectError::new(format!("not a function: {}", function_obj))) }
         }
     }
 }

@@ -234,6 +234,24 @@ if (10 > 1) {
             assert_eq!(program.eval(Rc::clone(&env)), Ok(Object::Integer(input.1)));
         }
     }
+
+    #[test]
+    fn test_closures() {
+        let input = "
+let newAdder = fn(x) {
+    fn(y) {x + y};
+};
+
+let addTwo = newAdder(2);
+addTwo(2);
+        ";
+
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        let env = Rc::new(RefCell::new(Environment::new()));
+        assert_eq!(program.eval(Rc::clone(&env)), Ok(Object::Integer(4)));
+    }
 }
 
 

@@ -56,7 +56,7 @@ impl Display for LetStatement {
 impl Evaluator for LetStatement {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
         if self.value.is_none() {
-            return Err(ObjectError::new(format!("identifier not found: {}", self.identifier)));
+            return Err(ObjectError::new(format!("LetStatement identifier:{} do not have value", self.identifier)));
         }
 
         let e = self.value.as_ref().unwrap();

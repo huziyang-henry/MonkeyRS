@@ -14,7 +14,7 @@ pub enum Object {
     Boolean(bool),
     Null,
     Return(Box<Object>),
-    Function(Function),
+    Function(Rc<Function>),
 }
 
 impl Display for Object {
@@ -46,7 +46,7 @@ impl ObjectError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Function {
     pub parameters: Vec<Identifier>,
     pub body: BlockStatement,
@@ -63,6 +63,16 @@ impl Display for Function {
         match paras {
             None => { write!(f, "fn(){{\n{}\n}}", self.body) }
             Some(s) => { write!(f, "fn({}){{\n{}\n}}", s, self.body) }
+        }
+    }
+}
+
+impl Clone for Function {
+    fn clone(&self) -> Self {
+        Function {
+            parameters: self.parameters.clone(),
+            body: self.body.clone(),
+            env: Rc::clone(&self.env),
         }
     }
 }
