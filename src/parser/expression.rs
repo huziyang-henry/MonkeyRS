@@ -12,6 +12,7 @@ pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
     BooleanLiteral(BooleanLiteral),
+    StringLiteral(StringLiteral),
     FunctionLiteral(FunctionLiteral),
     PrefixExpression(PrefixExpression),
     InfixExpression(InfixExpression),
@@ -30,6 +31,7 @@ impl Display for Expression {
             Expression::InfixExpression(s) => { s.fmt(f) }
             Expression::IfExpression(s) => { s.fmt(f) }
             Expression::CallExpression(s) => { s.fmt(f) }
+            Expression::StringLiteral(s) => { s.fmt(f) }
         }
     }
 }
@@ -45,6 +47,7 @@ impl Evaluator for Expression {
             Expression::InfixExpression(e) => { e.eval(env) }
             Expression::IfExpression(e) => { e.eval(env) }
             Expression::CallExpression(e) => { e.eval(env) }
+            Expression::StringLiteral(e) => { e.eval(env) }
         }
     }
 }
@@ -175,6 +178,12 @@ impl Evaluator for InfixExpression {
                     _ => { Err(ObjectError::new(format!("unknown operator: {} {} {}", left, self.token, right))) }
                 }
             }
+            (Object::String(left_s), Object::String(right_s)) => {
+                match self.token {
+                    Token::PLUS => { Ok(Object::String(format!("{}{}", left_s, right_s))) }
+                    _ => { Err(ObjectError::new(format!("unknown operator: {} {} {}", left, self.token, right))) }
+                }
+            }
             _ => { Err(ObjectError::new(format!("type mismatch: {} {} {}", left, self.token, right))) }
         }
     }
@@ -280,7 +289,7 @@ impl Evaluator for CallExpression {
                 for (i, para) in (&func.parameters).iter().enumerate() {
                     enclosed_env.set(para.token.literal(), arg_objs[i].clone());
                 }
-                
+
                 let result = func.body.eval(Rc::new(RefCell::new(enclosed_env)))?;
                 Ok(match result {
                     Object::Return(r) => { *r }
@@ -302,5 +311,23 @@ impl Display for CallExpression {
             None => { write!(f, "{}()", self.function) }
             Some(args) => { write!(f, "{}({})", self.function, args) }
         }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct StringLiteral {
+    pub token: Token,
+    pub value: String,
+}
+
+impl Display for StringLiteral {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.token)
+    }
+}
+
+impl Evaluator for StringLiteral {
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
+        Ok(Object::String(self.value.clone()))
     }
 }

@@ -7,6 +7,7 @@ pub enum Token {
 
     IDENT(String),
     INT(String),
+    STRING(String),
 
     ASSIGN,
     PLUS,
@@ -51,6 +52,7 @@ impl Token {
             Token::EOF => { "\0" }
             Token::IDENT(ident) => { ident }
             Token::INT(i) => { i }
+            Token::STRING(s) => { s }
             Token::ASSIGN => { "=" }
             Token::PLUS => { "+" }
             Token::MINUS => { "-" }

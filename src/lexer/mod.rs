@@ -87,6 +87,7 @@ impl Lexer {
                 need_read_char = false;
                 Token::INT(self.read_number().to_string())
             }
+            '"' => { Token::STRING(self.read_string().to_string()) }
             _ => { Token::ILLEGAL(ch.to_string()) }
         };
 
@@ -115,6 +116,18 @@ impl Lexer {
         let p = self.position;
         while predicate(self.ch) {
             self.read_char();
+        }
+
+        &self.input[p..self.position]
+    }
+
+    fn read_string(&mut self) -> &str {
+        let p = self.position + 1;
+        loop {
+            self.read_char();
+            if self.ch == '"' || self.ch == 0 as char {
+                break;
+            }
         }
 
         &self.input[p..self.position]
@@ -171,6 +184,8 @@ if (5 < 10) {
 
 10 == 10;
 10 != 9;
+\"foobar\"
+\"foo bar\"
 ";
         let expected_output = vec![
             Token::LET,
@@ -245,6 +260,8 @@ if (5 < 10) {
             Token::NEQ,
             Token::INT("9".to_string()),
             Token::SEMICOLON,
+            Token::STRING("foobar".to_string()),
+            Token::STRING("foo bar".to_string()),
         ];
 
         let lexer = Lexer::new(input);

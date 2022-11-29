@@ -252,6 +252,28 @@ addTwo(2);
         let env = Rc::new(RefCell::new(Environment::new()));
         assert_eq!(program.eval(Rc::clone(&env)), Ok(Object::Integer(4)));
     }
+
+    #[test]
+    fn test_eval_string_literal() {
+        let input = "\"Hello World!\"";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        let env = Rc::new(RefCell::new(Environment::new()));
+        assert_eq!(program.eval(Rc::clone(&env)), Ok(Object::String("Hello World!".to_string())));
+    }
+
+    #[test]
+    fn test_string_concatenation() {
+        let input = "\"Hello\" + \" \" + \"World!\"";
+
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        let env = Rc::new(RefCell::new(Environment::new()));
+        assert_eq!(program.eval(Rc::clone(&env)), Ok(Object::String("Hello World!".to_string())));
+    }
+
 }
 
 

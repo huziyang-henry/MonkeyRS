@@ -1,6 +1,6 @@
 use std::mem::swap;
 use crate::lexer::Lexer;
-use crate::parser::expression::{BooleanLiteral, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression, InfixExpression, IntegerLiteral, PrefixExpression};
+use crate::parser::expression::{BooleanLiteral, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression, InfixExpression, IntegerLiteral, PrefixExpression, StringLiteral};
 use crate::parser::program::Program;
 use crate::parser::statement::{BlockStatement, ExpressionStatement, LetStatement, ReturnStatement, Statement};
 use crate::token::Token;
@@ -157,6 +157,7 @@ impl Parser {
             Token::FUNCTION => { self.parse_fn_expression() }
             Token::BANG => { self.parse_prefix_expression() }
             Token::MINUS => { self.parse_prefix_expression() }
+            Token::STRING(s) => { self.parse_string_literal() }
             _ => {
                 self.errors.push(format!("no prefix parse function for {:?} found", self.cur_token));
                 None
@@ -213,6 +214,13 @@ impl Parser {
         Some(Box::new(Expression::BooleanLiteral(BooleanLiteral {
             token: self.cur_token.clone(),
             value,
+        })))
+    }
+
+    fn parse_string_literal(&mut self) -> Option<Box<Expression>> {
+        Some(Box::new(Expression::StringLiteral(StringLiteral {
+            token: self.cur_token.clone(),
+            value: self.cur_token.literal().to_string(),
         })))
     }
 
@@ -857,6 +865,14 @@ return 5;
         }
     }
 
+    fn assert_string_literal(exp: &Expression, value: &str) {
+        if let Expression::StringLiteral(s) = exp {
+            assert_eq!(s.to_string(), value);
+        } else {
+            assert!(false);
+        }
+    }
+
     fn unwrap_to_expression_statement(statement: &Statement) -> Option<&ExpressionStatement> {
         if let Statement::ExpressionStatement(e) = statement {
             Some(e)
@@ -879,5 +895,15 @@ return 5;
         } else {
             None
         }
+    }
+
+    #[test]
+    fn test_string_literal_expression() {
+        let input = "\"hello world!\"";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        let exp_stmt = unwrap_to_expression_statement(&program.statements[0]).unwrap();
+        assert_string_literal(exp_stmt.expression.as_ref().unwrap(), "hello world!");
     }
 }

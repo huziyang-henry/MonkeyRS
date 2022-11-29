@@ -12,6 +12,7 @@ pub mod environment;
 pub enum Object {
     Integer(i64),
     Boolean(bool),
+    String(String),
     Null,
     Return(Box<Object>),
     Function(Rc<Function>),
@@ -25,6 +26,7 @@ impl Display for Object {
             Object::Null => { write!(f, "Null") }
             Object::Return(r) => { write!(f, "{}", r) }
             Object::Function(func) => { write!(f, "{}", func) }
+            Object::String(s) => { write!(f, "{}", s) }
         }
     }
 }
