@@ -1,8 +1,8 @@
+use crate::object::environment::Environment;
+use crate::object::{Object, ObjectError};
 use std::cell::RefCell;
 use std::fmt::Display;
 use std::rc::Rc;
-use crate::object::{Object, ObjectError};
-use crate::object::environment::Environment;
 
 pub trait Evaluator: Display {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError>;
@@ -10,13 +10,13 @@ pub trait Evaluator: Display {
 
 #[cfg(test)]
 mod test {
-    use std::cell::RefCell;
-    use std::rc::Rc;
     use crate::evaluator::Evaluator;
     use crate::lexer::Lexer;
-    use crate::object::{Object, ObjectError};
     use crate::object::environment::Environment;
+    use crate::object::{Object, ObjectError};
     use crate::parser::Parser;
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     #[test]
     fn test_eval_integer_expression() {
@@ -37,7 +37,6 @@ mod test {
             ("3 * (3 * 3) + 10", 37),
             ("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50),
         ];
-
 
         for input in test_input {
             let mut parser = Parser::new(Lexer::new(input.0));
@@ -95,8 +94,12 @@ mod test {
 
             let env = Rc::new(RefCell::new(Environment::new()));
             match program.eval(Rc::clone(&env)) {
-                Ok(Object::Integer(v)) => { assert_eq!(Some(v), input.1) }
-                _ => { assert_eq!(None, input.1) }
+                Ok(Object::Integer(v)) => {
+                    assert_eq!(Some(v), input.1)
+                }
+                _ => {
+                    assert_eq!(None, input.1)
+                }
             }
         }
     }
@@ -115,7 +118,9 @@ mod test {
   }
 
   return 1;
-}", 10),
+}",
+                10,
+            ),
         ];
 
         for input in test_input {
@@ -130,18 +135,9 @@ mod test {
     #[test]
     fn test_error_handling() {
         let test_input = vec![
-            (
-                "5 + true;",
-                "type mismatch: Integer(5) + Boolean(true)",
-            ),
-            (
-                "5 + true; 5;",
-                "type mismatch: Integer(5) + Boolean(true)",
-            ),
-            (
-                "-true",
-                "unknown operator: -Boolean(true)",
-            ),
+            ("5 + true;", "type mismatch: Integer(5) + Boolean(true)"),
+            ("5 + true; 5;", "type mismatch: Integer(5) + Boolean(true)"),
+            ("-true", "unknown operator: -Boolean(true)"),
             (
                 "true + false;",
                 "unknown operator: Boolean(true) + Boolean(false)",
@@ -174,7 +170,10 @@ if (10 > 1) {
             let program = parser.parse_program();
 
             let env = Rc::new(RefCell::new(Environment::new()));
-            assert_eq!(program.eval(Rc::clone(&env)), Err(ObjectError::new(input.1.to_string())));
+            assert_eq!(
+                program.eval(Rc::clone(&env)),
+                Err(ObjectError::new(input.1.to_string()))
+            );
         }
     }
 
@@ -260,7 +259,10 @@ addTwo(2);
         let program = parser.parse_program();
 
         let env = Rc::new(RefCell::new(Environment::new()));
-        assert_eq!(program.eval(Rc::clone(&env)), Ok(Object::String("Hello World!".to_string())));
+        assert_eq!(
+            program.eval(Rc::clone(&env)),
+            Ok(Object::String("Hello World!".to_string()))
+        );
     }
 
     #[test]
@@ -271,9 +273,38 @@ addTwo(2);
         let program = parser.parse_program();
 
         let env = Rc::new(RefCell::new(Environment::new()));
-        assert_eq!(program.eval(Rc::clone(&env)), Ok(Object::String("Hello World!".to_string())));
+        assert_eq!(
+            program.eval(Rc::clone(&env)),
+            Ok(Object::String("Hello World!".to_string()))
+        );
     }
 
+    #[test]
+    fn test_builtin_function() {
+        let inputs = vec![
+            (r#"len("")"#, Ok(Object::Integer(0))),
+            (r#"len("four")"#, Ok(Object::Integer(4))),
+            (r#"len("hello world")"#, Ok(Object::Integer(11))),
+            (
+                r#"len(1)"#,
+                Err(ObjectError::new(format!(
+                    "argument to `len` not supported, got Integer(1)"
+                ))),
+            ),
+            (
+                r#"len("one", "two")"#,
+                Err(ObjectError::new(format!(
+                    "wrong number of arguments. got=2, want=1"
+                ))),
+            ),
+        ];
+
+        for input in inputs {
+            let mut parser = Parser::new(Lexer::new(input.0));
+            let program = parser.parse_program();
+
+            let env = Rc::new(RefCell::new(Environment::new()));
+            assert_eq!(program.eval(Rc::clone(&env)), input.1);
+        }
+    }
 }
-
-

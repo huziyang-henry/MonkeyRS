@@ -16,17 +16,33 @@ pub enum Object {
     Null,
     Return(Box<Object>),
     Function(Rc<Function>),
+    BuiltinFunction(BuiltinFunction),
 }
 
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
-            Object::Integer(i) => { write!(f, "Integer({})", i) }
-            Object::Boolean(b) => { write!(f, "Boolean({})", b) }
-            Object::Null => { write!(f, "Null") }
-            Object::Return(r) => { write!(f, "{}", r) }
-            Object::Function(func) => { write!(f, "{}", func) }
-            Object::String(s) => { write!(f, "{}", s) }
+            Object::Integer(i) => {
+                write!(f, "Integer({})", i)
+            }
+            Object::Boolean(b) => {
+                write!(f, "Boolean({})", b)
+            }
+            Object::Null => {
+                write!(f, "Null")
+            }
+            Object::Return(r) => {
+                write!(f, "{}", r)
+            }
+            Object::Function(func) => {
+                write!(f, "{}", func)
+            }
+            Object::String(s) => {
+                write!(f, "{}", s)
+            }
+            Object::BuiltinFunction(_) => {
+                write!(f, "builtin function")
+            }
         }
     }
 }
@@ -57,14 +73,19 @@ pub struct Function {
 
 impl Display for Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let paras = self.parameters
+        let paras = self
+            .parameters
             .iter()
             .map(|i| format!("{}", i))
             .reduce(|a, b| format!("{}, {}", a, b));
 
         match paras {
-            None => { write!(f, "fn(){{\n{}\n}}", self.body) }
-            Some(s) => { write!(f, "fn({}){{\n{}\n}}", s, self.body) }
+            None => {
+                write!(f, "fn(){{\n{}\n}}", self.body)
+            }
+            Some(s) => {
+                write!(f, "fn({}){{\n{}\n}}", s, self.body)
+            }
         }
     }
 }
@@ -83,4 +104,9 @@ impl PartialEq for Function {
     fn eq(&self, other: &Self) -> bool {
         self.parameters == other.parameters && self.body == other.body
     }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum BuiltinFunction {
+    Len,
 }

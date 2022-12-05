@@ -1,11 +1,11 @@
+use crate::evaluator::Evaluator;
+use crate::object::environment::Environment;
+use crate::object::{Object, ObjectError};
+use crate::parser::expression::{Expression, Identifier};
+use crate::token::Token;
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
-use crate::token::Token;
-use crate::object::{Object, ObjectError};
-use crate::parser::expression::{Expression, Identifier};
-use crate::evaluator::Evaluator;
-use crate::object::environment::Environment;
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Statement {
@@ -18,10 +18,10 @@ pub enum Statement {
 impl Display for Statement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Statement::LetStatement(s) => { s.fmt(f) }
-            Statement::ReturnStatement(s) => { s.fmt(f) }
-            Statement::ExpressionStatement(s) => { s.fmt(f) }
-            Statement::BlockStatement(s) => { s.fmt(f) }
+            Statement::LetStatement(s) => s.fmt(f),
+            Statement::ReturnStatement(s) => s.fmt(f),
+            Statement::ExpressionStatement(s) => s.fmt(f),
+            Statement::BlockStatement(s) => s.fmt(f),
         }
     }
 }
@@ -29,10 +29,10 @@ impl Display for Statement {
 impl Evaluator for Statement {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
         match self {
-            Statement::LetStatement(s) => { s.eval(env) }
-            Statement::ReturnStatement(s) => { s.eval(env) }
-            Statement::ExpressionStatement(s) => { s.eval(env) }
-            Statement::BlockStatement(s) => { s.eval(env) }
+            Statement::LetStatement(s) => s.eval(env),
+            Statement::ReturnStatement(s) => s.eval(env),
+            Statement::ExpressionStatement(s) => s.eval(env),
+            Statement::BlockStatement(s) => s.eval(env),
         }
     }
 }
@@ -47,8 +47,12 @@ pub struct LetStatement {
 impl Display for LetStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.value {
-            None => { write!(f, "{} {};", self.token, self.identifier) }
-            Some(e) => { write!(f, "{} {} = {};", self.token, self.identifier, e) }
+            None => {
+                write!(f, "{} {};", self.token, self.identifier)
+            }
+            Some(e) => {
+                write!(f, "{} {} = {};", self.token, self.identifier, e)
+            }
         }
     }
 }
@@ -56,12 +60,16 @@ impl Display for LetStatement {
 impl Evaluator for LetStatement {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
         if self.value.is_none() {
-            return Err(ObjectError::new(format!("LetStatement identifier:{} do not have value", self.identifier)));
+            return Err(ObjectError::new(format!(
+                "LetStatement identifier:{} do not have value",
+                self.identifier
+            )));
         }
 
         let e = self.value.as_ref().unwrap();
         let result = e.eval(Rc::clone(&env))?;
-        env.borrow_mut().set(self.identifier.token.literal(), result);
+        env.borrow_mut()
+            .set(self.identifier.token.literal(), result);
 
         Ok(Object::Null)
     }
@@ -76,8 +84,12 @@ pub struct ReturnStatement {
 impl Display for ReturnStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.value {
-            None => { write!(f, "{};", self.token) }
-            Some(e) => { write!(f, "{} {};", self.token, e) }
+            None => {
+                write!(f, "{};", self.token)
+            }
+            Some(e) => {
+                write!(f, "{} {};", self.token, e)
+            }
         }
     }
 }
@@ -85,8 +97,8 @@ impl Display for ReturnStatement {
 impl Evaluator for ReturnStatement {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
         let v = match &self.value {
-            None => { Ok(Object::Null) }
-            Some(v) => { v.eval(env) }
+            None => Ok(Object::Null),
+            Some(v) => v.eval(env),
         }?;
 
         Ok(Object::Return(Box::new(v)))
@@ -102,8 +114,12 @@ pub struct ExpressionStatement {
 impl Display for ExpressionStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.expression {
-            None => { write!(f, "") }
-            Some(e) => { write!(f, "{}", e) }
+            None => {
+                write!(f, "")
+            }
+            Some(e) => {
+                write!(f, "{}", e)
+            }
         }
     }
 }
@@ -111,8 +127,8 @@ impl Display for ExpressionStatement {
 impl Evaluator for ExpressionStatement {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
         Ok(match &self.expression {
-            None => { Object::Null }
-            Some(e) => { e.eval(env)? }
+            None => Object::Null,
+            Some(e) => e.eval(env)?,
         })
     }
 }

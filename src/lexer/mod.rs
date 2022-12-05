@@ -48,14 +48,14 @@ impl Lexer {
                     Token::ASSIGN
                 }
             }
-            ';' => { Token::SEMICOLON }
-            '(' => { Token::LPAREN }
-            ')' => { Token::RPAREN }
-            ',' => { Token::COMMA }
-            '+' => { Token::PLUS }
-            '-' => { Token::MINUS }
-            '*' => { Token::ASTERISK }
-            '/' => { Token::SLASH }
+            ';' => Token::SEMICOLON,
+            '(' => Token::LPAREN,
+            ')' => Token::RPAREN,
+            ',' => Token::COMMA,
+            '+' => Token::PLUS,
+            '-' => Token::MINUS,
+            '*' => Token::ASTERISK,
+            '/' => Token::SLASH,
             '!' => {
                 if self.peek_char() == '=' {
                     self.read_char();
@@ -64,31 +64,31 @@ impl Lexer {
                     Token::BANG
                 }
             }
-            '>' => { Token::GT }
-            '<' => { Token::LT }
-            '{' => { Token::LBRACE }
-            '}' => { Token::RBRACE }
-            c if c == char::from(0) => { Token::EOF }
+            '>' => Token::GT,
+            '<' => Token::LT,
+            '{' => Token::LBRACE,
+            '}' => Token::RBRACE,
+            c if c == char::from(0) => Token::EOF,
             c if Self::is_letter(c) => {
                 need_read_char = false;
                 let identifier = self.read_identifier();
                 match identifier {
-                    "fn" => { Token::FUNCTION }
-                    "let" => { Token::LET }
-                    "true" => { Token::TRUE }
-                    "false" => { Token::FALSE }
-                    "if" => { Token::IF }
-                    "else" => { Token::ELSE }
-                    "return" => { Token::RETURN }
-                    _ => { Token::IDENT(identifier.to_string()) }
+                    "fn" => Token::FUNCTION,
+                    "let" => Token::LET,
+                    "true" => Token::TRUE,
+                    "false" => Token::FALSE,
+                    "if" => Token::IF,
+                    "else" => Token::ELSE,
+                    "return" => Token::RETURN,
+                    _ => Token::IDENT(identifier.to_string()),
                 }
             }
             c if Self::is_digit(c) => {
                 need_read_char = false;
                 Token::INT(self.read_number().to_string())
             }
-            '"' => { Token::STRING(self.read_string().to_string()) }
-            _ => { Token::ILLEGAL(ch.to_string()) }
+            '"' => Token::STRING(self.read_string().to_string()),
+            _ => Token::ILLEGAL(ch.to_string()),
         };
 
         if need_read_char {
@@ -151,8 +151,8 @@ impl Iterator for Lexer {
     fn next(&mut self) -> Option<Self::Item> {
         let token = self.next_token();
         match token {
-            Token::EOF => { None }
-            _ => Some(token)
+            Token::EOF => None,
+            _ => Some(token),
         }
     }
 }

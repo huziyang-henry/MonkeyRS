@@ -1,10 +1,10 @@
+use crate::evaluator::Evaluator;
+use crate::object::environment::Environment;
+use crate::object::{Object, ObjectError};
+use crate::parser::statement::Statement;
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
-use crate::object::{Object, ObjectError};
-use crate::evaluator::Evaluator;
-use crate::object::environment::Environment;
-use crate::parser::statement::{Statement};
 
 pub struct Program {
     pub statements: Vec<Statement>,

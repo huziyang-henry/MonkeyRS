@@ -1,14 +1,19 @@
-use std::mem::swap;
 use crate::lexer::Lexer;
-use crate::parser::expression::{BooleanLiteral, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression, InfixExpression, IntegerLiteral, PrefixExpression, StringLiteral};
+use crate::parser::expression::{
+    BooleanLiteral, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
+    InfixExpression, IntegerLiteral, PrefixExpression, StringLiteral,
+};
 use crate::parser::program::Program;
-use crate::parser::statement::{BlockStatement, ExpressionStatement, LetStatement, ReturnStatement, Statement};
+use crate::parser::statement::{
+    BlockStatement, ExpressionStatement, LetStatement, ReturnStatement, Statement,
+};
 use crate::token::Token;
+use std::mem::swap;
 
-pub mod program;
-pub mod node;
-pub mod statement;
 pub mod expression;
+pub mod node;
+pub mod program;
+pub mod statement;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 enum PrecedenceType {
@@ -28,7 +33,6 @@ pub struct Parser {
     peek_token: Token,
 }
 
-
 impl Parser {
     pub fn new(mut lexer: Lexer) -> Self {
         let cur_token = lexer.next_token();
@@ -47,7 +51,9 @@ impl Parser {
     }
 
     pub fn parse_program(&mut self) -> Program {
-        let mut program = Program { statements: Vec::new() };
+        let mut program = Program {
+            statements: Vec::new(),
+        };
 
         while !matches!(self.cur_token, Token::EOF) {
             if let Some(statement) = self.parse_statement() {
@@ -61,9 +67,9 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Option<Statement> {
         match &self.cur_token {
-            Token::LET => { self.parse_let_statement() }
-            Token::RETURN => { self.parse_return_statement() }
-            _ => { self.parse_expression_statement() }
+            Token::LET => self.parse_let_statement(),
+            Token::RETURN => self.parse_return_statement(),
+            _ => self.parse_expression_statement(),
         }
     }
 
@@ -73,7 +79,10 @@ impl Parser {
         if matches!(self.peek_token, Token::IDENT(_)) {
             self.next_token()
         } else {
-            self.errors.push(format!("expected next token to be Token::IDENT, got {} instead", self.peek_token));
+            self.errors.push(format!(
+                "expected next token to be Token::IDENT, got {} instead",
+                self.peek_token
+            ));
             return None;
         }
 
@@ -84,7 +93,10 @@ impl Parser {
         if matches!(self.peek_token, Token::ASSIGN) {
             self.next_token()
         } else {
-            self.errors.push(format!("expected next token to be Token::ASSIGN, got {} instead", self.peek_token));
+            self.errors.push(format!(
+                "expected next token to be Token::ASSIGN, got {} instead",
+                self.peek_token
+            ));
             return None;
         }
 
@@ -118,10 +130,7 @@ impl Parser {
         let token = self.cur_token.clone();
         let expression = self.parse_expression(PrecedenceType::LOWEST);
 
-        let exp_stmt = ExpressionStatement {
-            token,
-            expression,
-        };
+        let exp_stmt = ExpressionStatement { token, expression };
 
         if matches!(self.peek_token, Token::SEMICOLON) {
             self.next_token();
@@ -148,32 +157,39 @@ impl Parser {
 
     fn parse_expression(&mut self, precedence: PrecedenceType) -> Option<Box<Expression>> {
         let mut left = match &self.cur_token {
-            Token::IDENT(_) => { self.parse_identifier() }
-            Token::INT(int_string) => { self.parse_integer_literal(int_string.to_string()) }
-            Token::TRUE => { self.parse_bool_literal(true) }
-            Token::FALSE => { self.parse_bool_literal(false) }
-            Token::LPAREN => { self.parse_grouped_expression() }
-            Token::IF => { self.parse_if_expression() }
-            Token::FUNCTION => { self.parse_fn_expression() }
-            Token::BANG => { self.parse_prefix_expression() }
-            Token::MINUS => { self.parse_prefix_expression() }
-            Token::STRING(s) => { self.parse_string_literal() }
+            Token::IDENT(_) => self.parse_identifier(),
+            Token::INT(int_string) => self.parse_integer_literal(int_string.to_string()),
+            Token::TRUE => self.parse_bool_literal(true),
+            Token::FALSE => self.parse_bool_literal(false),
+            Token::LPAREN => self.parse_grouped_expression(),
+            Token::IF => self.parse_if_expression(),
+            Token::FUNCTION => self.parse_fn_expression(),
+            Token::BANG => self.parse_prefix_expression(),
+            Token::MINUS => self.parse_prefix_expression(),
+            Token::STRING(s) => self.parse_string_literal(),
             _ => {
-                self.errors.push(format!("no prefix parse function for {:?} found", self.cur_token));
+                self.errors.push(format!(
+                    "no prefix parse function for {:?} found",
+                    self.cur_token
+                ));
                 None
             }
         }?;
 
-        while !matches!(self.peek_token, Token::SEMICOLON) && precedence < Self::get_precedence(&self.peek_token) {
-            if matches!(self.peek_token,
+        while !matches!(self.peek_token, Token::SEMICOLON)
+            && precedence < Self::get_precedence(&self.peek_token)
+        {
+            if matches!(
+                self.peek_token,
                 Token::PLUS
-                | Token::MINUS
-                | Token::SLASH
-                | Token::ASTERISK
-                | Token::EQ
-                | Token::NEQ
-                | Token::LT
-                | Token::GT) {
+                    | Token::MINUS
+                    | Token::SLASH
+                    | Token::ASTERISK
+                    | Token::EQ
+                    | Token::NEQ
+                    | Token::LT
+                    | Token::GT
+            ) {
                 self.next_token();
                 left = self.parse_infix_expression(left)?;
             } else if matches!(self.peek_token, Token::LPAREN) {
@@ -197,14 +213,13 @@ impl Parser {
         let token = self.cur_token.clone();
         let value_result = int_string.parse::<i64>();
         match value_result {
-            Ok(value) => {
-                Some(Box::new(Expression::IntegerLiteral(IntegerLiteral {
-                    token,
-                    value,
-                })))
-            }
+            Ok(value) => Some(Box::new(Expression::IntegerLiteral(IntegerLiteral {
+                token,
+                value,
+            }))),
             Err(_) => {
-                self.errors.push(format!("count not parse {:?} as integer", token));
+                self.errors
+                    .push(format!("count not parse {:?} as integer", token));
                 None
             }
         }
@@ -416,12 +431,12 @@ impl Parser {
 
     fn get_precedence(token: &Token) -> PrecedenceType {
         match token {
-            Token::EQ | Token::NEQ => { PrecedenceType::EQUALS }
-            Token::LT | Token::GT => { PrecedenceType::LESSGREATER }
-            Token::PLUS | Token::MINUS => { PrecedenceType::SUM }
-            Token::SLASH | Token::ASTERISK => { PrecedenceType::PRODUCT }
-            Token::LPAREN => { PrecedenceType::CALL }
-            _ => PrecedenceType::LOWEST
+            Token::EQ | Token::NEQ => PrecedenceType::EQUALS,
+            Token::LT | Token::GT => PrecedenceType::LESSGREATER,
+            Token::PLUS | Token::MINUS => PrecedenceType::SUM,
+            Token::SLASH | Token::ASTERISK => PrecedenceType::PRODUCT,
+            Token::LPAREN => PrecedenceType::CALL,
+            _ => PrecedenceType::LOWEST,
         }
     }
 }
@@ -430,8 +445,8 @@ impl Parser {
 mod tests {
     use crate::lexer::Lexer;
     use crate::parser::expression::{CallExpression, Expression, FunctionLiteral};
-    use crate::parser::Parser;
     use crate::parser::statement::{ExpressionStatement, Statement};
+    use crate::parser::Parser;
 
     #[test]
     fn test_parser() {
@@ -445,7 +460,11 @@ return 5;
 
         let program = parser.parse_program();
         if parser.errors.len() > 0 {
-            println!("parser.errors.len() = {:?}, {:?}", parser.errors.len(), parser.errors);
+            println!(
+                "parser.errors.len() = {:?}, {:?}",
+                parser.errors.len(),
+                parser.errors
+            );
             assert_eq!(parser.errors.len(), 0);
             return;
         }
@@ -567,17 +586,72 @@ return 5;
     #[test]
     fn test_infix_expression() {
         let infix_tests = vec![
-            ("5 + 5;", Literal::NumberLiteral(5), "+", Literal::NumberLiteral(5)),
-            ("5 - 5;", Literal::NumberLiteral(5), "-", Literal::NumberLiteral(5)),
-            ("5 * 5;", Literal::NumberLiteral(5), "*", Literal::NumberLiteral(5)),
-            ("5 / 5;", Literal::NumberLiteral(5), "/", Literal::NumberLiteral(5)),
-            ("5 > 5;", Literal::NumberLiteral(5), ">", Literal::NumberLiteral(5)),
-            ("5 < 5;", Literal::NumberLiteral(5), "<", Literal::NumberLiteral(5)),
-            ("5 == 5;", Literal::NumberLiteral(5), "==", Literal::NumberLiteral(5)),
-            ("5 != 5;", Literal::NumberLiteral(5), "!=", Literal::NumberLiteral(5)),
-            ("true == true", Literal::BoolLiteral(true), "==", Literal::BoolLiteral(true)),
-            ("true != false", Literal::BoolLiteral(true), "!=", Literal::BoolLiteral(false)),
-            ("false == false", Literal::BoolLiteral(false), "==", Literal::BoolLiteral(false)),
+            (
+                "5 + 5;",
+                Literal::NumberLiteral(5),
+                "+",
+                Literal::NumberLiteral(5),
+            ),
+            (
+                "5 - 5;",
+                Literal::NumberLiteral(5),
+                "-",
+                Literal::NumberLiteral(5),
+            ),
+            (
+                "5 * 5;",
+                Literal::NumberLiteral(5),
+                "*",
+                Literal::NumberLiteral(5),
+            ),
+            (
+                "5 / 5;",
+                Literal::NumberLiteral(5),
+                "/",
+                Literal::NumberLiteral(5),
+            ),
+            (
+                "5 > 5;",
+                Literal::NumberLiteral(5),
+                ">",
+                Literal::NumberLiteral(5),
+            ),
+            (
+                "5 < 5;",
+                Literal::NumberLiteral(5),
+                "<",
+                Literal::NumberLiteral(5),
+            ),
+            (
+                "5 == 5;",
+                Literal::NumberLiteral(5),
+                "==",
+                Literal::NumberLiteral(5),
+            ),
+            (
+                "5 != 5;",
+                Literal::NumberLiteral(5),
+                "!=",
+                Literal::NumberLiteral(5),
+            ),
+            (
+                "true == true",
+                Literal::BoolLiteral(true),
+                "==",
+                Literal::BoolLiteral(true),
+            ),
+            (
+                "true != false",
+                Literal::BoolLiteral(true),
+                "!=",
+                Literal::BoolLiteral(false),
+            ),
+            (
+                "false == false",
+                Literal::BoolLiteral(false),
+                "==",
+                Literal::BoolLiteral(false),
+            ),
         ];
 
         for test in infix_tests {
@@ -595,101 +669,43 @@ return 5;
             assert_eq!(program.statements.len(), 1);
 
             let exp_stmt = unwrap_to_expression_statement(&program.statements[0]).unwrap();
-            assert_infix_expression(exp_stmt.expression.as_ref().unwrap(), test.1, test.2, test.3);
+            assert_infix_expression(
+                exp_stmt.expression.as_ref().unwrap(),
+                test.1,
+                test.2,
+                test.3,
+            );
         }
     }
 
     #[test]
     fn test_operator_precedence_parsing() {
         let test_vec = vec![
-            (
-                "-a * b",
-                "((-a) * b)",
-            ),
-            (
-                "!-a",
-                "(!(-a))",
-            ),
-            (
-                "a + b + c",
-                "((a + b) + c)",
-            ),
-            (
-                "a + b - c",
-                "((a + b) - c)",
-            ),
-            (
-                "a * b * c",
-                "((a * b) * c)",
-            ),
-            (
-                "a * b / c",
-                "((a * b) / c)",
-            ),
-            (
-                "a + b / c",
-                "(a + (b / c))",
-            ),
-            (
-                "a + b * c + d / e - f",
-                "(((a + (b * c)) + (d / e)) - f)",
-            ),
-            (
-                "3 + 4; -5 * 5",
-                "(3 + 4)((-5) * 5)",
-            ),
-            (
-                "5 > 4 == 3 < 4",
-                "((5 > 4) == (3 < 4))",
-            ),
-            (
-                "5 < 4 != 3 > 4",
-                "((5 < 4) != (3 > 4))",
-            ),
+            ("-a * b", "((-a) * b)"),
+            ("!-a", "(!(-a))"),
+            ("a + b + c", "((a + b) + c)"),
+            ("a + b - c", "((a + b) - c)"),
+            ("a * b * c", "((a * b) * c)"),
+            ("a * b / c", "((a * b) / c)"),
+            ("a + b / c", "(a + (b / c))"),
+            ("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"),
+            ("3 + 4; -5 * 5", "(3 + 4)((-5) * 5)"),
+            ("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"),
+            ("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))"),
             (
                 "3 + 4 * 5 == 3 * 1 + 4 * 5",
                 "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
             ),
-            (
-                "true",
-                "true",
-            ),
-            (
-                "false",
-                "false",
-            ),
-            (
-                "3 > 5 == false",
-                "((3 > 5) == false)",
-            ),
-            (
-                "3 < 5 == true",
-                "((3 < 5) == true)",
-            ),
-            (
-                "1 + (2 + 3) + 4",
-                "((1 + (2 + 3)) + 4)",
-            ),
-            (
-                "(5 + 5) * 2",
-                "((5 + 5) * 2)",
-            ),
-            (
-                "2 / (5 + 5)",
-                "(2 / (5 + 5))",
-            ),
-            (
-                "-(5 + 5)",
-                "(-(5 + 5))",
-            ),
-            (
-                "!(true == true)",
-                "(!(true == true))",
-            ),
-            (
-                "a + add(b * c) + d",
-                "((a + add((b * c))) + d)",
-            ),
+            ("true", "true"),
+            ("false", "false"),
+            ("3 > 5 == false", "((3 > 5) == false)"),
+            ("3 < 5 == true", "((3 < 5) == true)"),
+            ("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
+            ("(5 + 5) * 2", "((5 + 5) * 2)"),
+            ("2 / (5 + 5)", "(2 / (5 + 5))"),
+            ("-(5 + 5)", "(-(5 + 5))"),
+            ("!(true == true)", "(!(true == true))"),
+            ("a + add(b * c) + d", "((a + add((b * c))) + d)"),
             (
                 "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
                 "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
@@ -731,10 +747,12 @@ return 5;
 
         if let Statement::ExpressionStatement(exp) = &program.statements[0] {
             if let Expression::IfExpression(if_exp) = exp.expression.as_ref().unwrap().as_ref() {
-                assert_infix_expression(&if_exp.condition,
-                                        Literal::StringLiteral("x".to_string()),
-                                        "<",
-                                        Literal::StringLiteral("y".to_string()));
+                assert_infix_expression(
+                    &if_exp.condition,
+                    Literal::StringLiteral("x".to_string()),
+                    "<",
+                    Literal::StringLiteral("y".to_string()),
+                );
 
                 assert_eq!(if_exp.consequence.statements.len(), 1);
 
@@ -774,13 +792,19 @@ return 5;
         assert_eq!(fn_exp.parameters[1].token.to_string(), "y");
         assert_eq!(fn_exp.body.statements.len(), 1);
 
-        let body_stmt = unwrap_to_expression_statement(&fn_exp.body.statements[0]).unwrap()
-            .expression.as_ref().unwrap().as_ref();
+        let body_stmt = unwrap_to_expression_statement(&fn_exp.body.statements[0])
+            .unwrap()
+            .expression
+            .as_ref()
+            .unwrap()
+            .as_ref();
 
-        assert_infix_expression(body_stmt,
-                                Literal::StringLiteral("x".to_string()),
-                                "+",
-                                Literal::StringLiteral("y".to_string()));
+        assert_infix_expression(
+            body_stmt,
+            Literal::StringLiteral("x".to_string()),
+            "+",
+            Literal::StringLiteral("y".to_string()),
+        );
     }
 
     #[test]
@@ -802,8 +826,18 @@ return 5;
         assert_identifier(&call_exp.function, "add");
         assert_eq!(call_exp.args.len(), 3);
         assert_literal_expression(&call_exp.args[0], Literal::NumberLiteral(1));
-        assert_infix_expression(&call_exp.args[1], Literal::NumberLiteral(2), "*", Literal::NumberLiteral(3));
-        assert_infix_expression(&call_exp.args[2], Literal::NumberLiteral(4), "+", Literal::NumberLiteral(5));
+        assert_infix_expression(
+            &call_exp.args[1],
+            Literal::NumberLiteral(2),
+            "*",
+            Literal::NumberLiteral(3),
+        );
+        assert_infix_expression(
+            &call_exp.args[2],
+            Literal::NumberLiteral(4),
+            "+",
+            Literal::NumberLiteral(5),
+        );
     }
 
     enum Literal {
@@ -833,9 +867,9 @@ return 5;
 
     fn assert_literal_expression(exp: &Expression, value: Literal) {
         match value {
-            Literal::BoolLiteral(v) => { assert_bool_literal(exp, v) }
-            Literal::NumberLiteral(v) => { assert_integer_literal(exp, v) }
-            Literal::StringLiteral(v) => { assert_identifier(exp, &v) }
+            Literal::BoolLiteral(v) => assert_bool_literal(exp, v),
+            Literal::NumberLiteral(v) => assert_integer_literal(exp, v),
+            Literal::StringLiteral(v) => assert_identifier(exp, &v),
         }
     }
 
