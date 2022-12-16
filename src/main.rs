@@ -1,3 +1,5 @@
+extern crate core;
+
 mod evaluator;
 mod lexer;
 mod object;

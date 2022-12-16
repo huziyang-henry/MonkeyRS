@@ -1,7 +1,7 @@
 use crate::lexer::Lexer;
 use crate::parser::expression::{
-    BooleanLiteral, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
-    InfixExpression, IntegerLiteral, PrefixExpression, StringLiteral,
+    ArrayLiteral, BooleanLiteral, CallExpression, Expression, FunctionLiteral, Identifier,
+    IfExpression, InfixExpression, IntegerLiteral, PrefixExpression, StringLiteral,
 };
 use crate::parser::program::Program;
 use crate::parser::statement::{
@@ -155,7 +155,7 @@ impl Parser {
         BlockStatement { token, statements }
     }
 
-    fn parse_expression(&mut self, precedence: PrecedenceType) -> Option<Box<Expression>> {
+    fn parse_expression(&mut self, precedence: PrecedenceType) -> Option<Expression> {
         let mut left = match &self.cur_token {
             Token::IDENT(_) => self.parse_identifier(),
             Token::INT(int_string) => self.parse_integer_literal(int_string.to_string()),
@@ -164,6 +164,7 @@ impl Parser {
             Token::LPAREN => self.parse_grouped_expression(),
             Token::IF => self.parse_if_expression(),
             Token::FUNCTION => self.parse_fn_expression(),
+            Token::LBRACKET => self.parse_array_literal(),
             Token::BANG => self.parse_prefix_expression(),
             Token::MINUS => self.parse_prefix_expression(),
             Token::STRING(s) => self.parse_string_literal(),
@@ -203,20 +204,17 @@ impl Parser {
         Some(left)
     }
 
-    fn parse_identifier(&mut self) -> Option<Box<Expression>> {
-        Some(Box::new(Expression::Identifier(Identifier {
+    fn parse_identifier(&mut self) -> Option<Expression> {
+        Some(Expression::Identifier(Identifier {
             token: self.cur_token.clone(),
-        })))
+        }))
     }
 
-    fn parse_integer_literal(&mut self, int_string: String) -> Option<Box<Expression>> {
+    fn parse_integer_literal(&mut self, int_string: String) -> Option<Expression> {
         let token = self.cur_token.clone();
         let value_result = int_string.parse::<i64>();
         match value_result {
-            Ok(value) => Some(Box::new(Expression::IntegerLiteral(IntegerLiteral {
-                token,
-                value,
-            }))),
+            Ok(value) => Some(Expression::IntegerLiteral(IntegerLiteral { token, value })),
             Err(_) => {
                 self.errors
                     .push(format!("count not parse {:?} as integer", token));
@@ -225,21 +223,21 @@ impl Parser {
         }
     }
 
-    fn parse_bool_literal(&mut self, value: bool) -> Option<Box<Expression>> {
-        Some(Box::new(Expression::BooleanLiteral(BooleanLiteral {
+    fn parse_bool_literal(&mut self, value: bool) -> Option<Expression> {
+        Some(Expression::BooleanLiteral(BooleanLiteral {
             token: self.cur_token.clone(),
             value,
-        })))
+        }))
     }
 
-    fn parse_string_literal(&mut self) -> Option<Box<Expression>> {
-        Some(Box::new(Expression::StringLiteral(StringLiteral {
+    fn parse_string_literal(&mut self) -> Option<Expression> {
+        Some(Expression::StringLiteral(StringLiteral {
             token: self.cur_token.clone(),
             value: self.cur_token.literal().to_string(),
-        })))
+        }))
     }
 
-    fn parse_grouped_expression(&mut self) -> Option<Box<Expression>> {
+    fn parse_grouped_expression(&mut self) -> Option<Expression> {
         self.next_token();
 
         let exp = self.parse_expression(PrecedenceType::LOWEST);
@@ -251,7 +249,7 @@ impl Parser {
         }
     }
 
-    fn parse_if_expression(&mut self) -> Option<Box<Expression>> {
+    fn parse_if_expression(&mut self) -> Option<Expression> {
         let token = self.cur_token.clone();
 
         if matches!(self.peek_token, Token::LPAREN) {
@@ -279,7 +277,7 @@ impl Parser {
 
         let mut if_exp = IfExpression {
             token,
-            condition,
+            condition: Box::new(condition),
             consequence,
             alternative: None,
         };
@@ -296,10 +294,10 @@ impl Parser {
             if_exp.alternative = Some(self.parse_block_statement());
         }
 
-        Some(Box::new(Expression::IfExpression(if_exp)))
+        Some(Expression::IfExpression(if_exp))
     }
 
-    fn parse_fn_expression(&mut self) -> Option<Box<Expression>> {
+    fn parse_fn_expression(&mut self) -> Option<Expression> {
         let token = self.cur_token.clone();
 
         if matches!(self.peek_token, Token::LPAREN) {
@@ -318,11 +316,11 @@ impl Parser {
 
         let body = self.parse_block_statement();
 
-        Some(Box::new(Expression::FunctionLiteral(FunctionLiteral {
+        Some(Expression::FunctionLiteral(FunctionLiteral {
             token,
             parameters,
             body,
-        })))
+        }))
     }
 
     fn parse_fn_parameters(&mut self) -> Option<Vec<Identifier>> {
@@ -357,37 +355,30 @@ impl Parser {
         Some(vec)
     }
 
-    fn parse_call_expression(&mut self, function: Box<Expression>) -> Option<Box<Expression>> {
+    fn parse_array_literal(&mut self) -> Option<Expression> {
         let token = self.cur_token.clone();
-        let args = self.parse_call_args()?;
-        Some(Box::new(Expression::CallExpression(CallExpression {
-            token,
-            function,
-            args,
-        })))
+        let elements = self.parse_expression_list(Token::RBRACKET)?;
+        Some(Expression::ArrayLiteral(ArrayLiteral { token, elements }))
     }
 
-    fn parse_call_args(&mut self) -> Option<Vec<Box<Expression>>> {
+    fn parse_expression_list(&mut self, token: Token) -> Option<Vec<Expression>> {
         let mut vec = vec![];
 
-        if matches!(self.peek_token, Token::RPAREN) {
+        if self.peek_token == token {
             self.next_token();
             return Some(vec);
         }
 
         self.next_token();
-        let arg = self.parse_expression(PrecedenceType::LOWEST)?;
-        vec.push(arg);
+        vec.push(self.parse_expression(PrecedenceType::LOWEST)?);
 
         while matches!(self.peek_token, Token::COMMA) {
             self.next_token();
             self.next_token();
-
-            let arg = self.parse_expression(PrecedenceType::LOWEST)?;
-            vec.push(arg);
+            vec.push(self.parse_expression(PrecedenceType::LOWEST)?);
         }
 
-        if matches!(self.peek_token, Token::RPAREN) {
+        if self.peek_token == token {
             self.next_token();
         } else {
             return None;
@@ -396,38 +387,38 @@ impl Parser {
         Some(vec)
     }
 
-    fn parse_prefix_expression(&mut self) -> Option<Box<Expression>> {
+    fn parse_call_expression(&mut self, function: Expression) -> Option<Expression> {
+        let token = self.cur_token.clone();
+        let args = self.parse_expression_list(Token::RPAREN)?;
+        Some(Expression::CallExpression(CallExpression {
+            token,
+            function: Box::new(function),
+            args,
+        }))
+    }
+
+    fn parse_prefix_expression(&mut self) -> Option<Expression> {
         let token = self.cur_token.clone();
         self.next_token();
         let right = self.parse_expression(PrecedenceType::PREFIX)?;
-        Some(Box::new(Expression::PrefixExpression(PrefixExpression {
+        Some(Expression::PrefixExpression(PrefixExpression {
             token,
-            right,
-        })))
+            right: Box::new(right),
+        }))
     }
 
-    fn parse_infix_expression(&mut self, left: Box<Expression>) -> Option<Box<Expression>> {
+    fn parse_infix_expression(&mut self, left: Expression) -> Option<Expression> {
         let token = self.cur_token.clone();
         let precedence = Self::get_precedence(&self.cur_token);
 
         self.next_token();
         let right = self.parse_expression(precedence)?;
-        Some(Box::new(Expression::InfixExpression(InfixExpression {
+        Some(Expression::InfixExpression(InfixExpression {
             token,
-            left,
-            right,
-        })))
+            left: Box::new(left),
+            right: Box::new(right),
+        }))
     }
-
-    // fn expect_peek(&mut self, token_type: TokenType) -> bool {
-    //     if self.peek_token.token_type == token_type {
-    //         self.next_token();
-    //         true
-    //     } else {
-    //         self.peek_error(token_type);
-    //         false
-    //     }
-    // }
 
     fn get_precedence(token: &Token) -> PrecedenceType {
         match token {
@@ -490,28 +481,6 @@ return 5;
         }
     }
 
-    // #[test]
-    // fn test_parser2() {
-    //     let input = "let myVar = anotherVar;";
-    //     let expected_output = Program {
-    //         statements: vec![
-    //             StatementEnum::LetStatement(LetStatement {
-    //                 token: Token::new(TokenType::LET, "let"),
-    //                 name: Identifier {
-    //                     token: Token::new(TokenType::IDENT, "myVar"),
-    //                     value: "myVar".to_string(),
-    //                 },
-    //                 value: Some(Box::new(Identifier {
-    //                     token: Token::new(TokenType::IDENT, "anotherVar"),
-    //                     value: "anotherVar".to_string(),
-    //                 })),
-    //             })
-    //         ]
-    //     };
-    //
-    //     assert_eq!(input, expected_output.to_string());
-    // }
-    //
     #[test]
     fn test_identifier_expression() {
         let input = "foobar;";
@@ -746,7 +715,7 @@ return 5;
         assert_eq!(program.statements.len(), 1);
 
         if let Statement::ExpressionStatement(exp) = &program.statements[0] {
-            if let Expression::IfExpression(if_exp) = exp.expression.as_ref().unwrap().as_ref() {
+            if let Expression::IfExpression(if_exp) = exp.expression.as_ref().unwrap() {
                 assert_infix_expression(
                     &if_exp.condition,
                     Literal::StringLiteral("x".to_string()),
@@ -796,8 +765,7 @@ return 5;
             .unwrap()
             .expression
             .as_ref()
-            .unwrap()
-            .as_ref();
+            .unwrap();
 
         assert_infix_expression(
             body_stmt,
@@ -939,5 +907,34 @@ return 5;
 
         let exp_stmt = unwrap_to_expression_statement(&program.statements[0]).unwrap();
         assert_string_literal(exp_stmt.expression.as_ref().unwrap(), "hello world!");
+    }
+
+    #[test]
+    fn test_array_literal_expression() {
+        let input = "[1, 2*2, 3+3]";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        let exp_stmt = unwrap_to_expression_statement(&program.statements[0]).unwrap();
+        let expression = exp_stmt.expression.as_ref().unwrap();
+        match expression {
+            Expression::ArrayLiteral(a) => {
+                assert_eq!(a.elements.len(), 3);
+                assert_integer_literal(&a.elements[0], 1);
+                assert_infix_expression(
+                    &a.elements[1],
+                    Literal::NumberLiteral(2),
+                    "*",
+                    Literal::NumberLiteral(2),
+                );
+                assert_infix_expression(
+                    &a.elements[2],
+                    Literal::NumberLiteral(3),
+                    "+",
+                    Literal::NumberLiteral(3),
+                );
+            }
+            _ => panic!("not array literal"),
+        }
     }
 }

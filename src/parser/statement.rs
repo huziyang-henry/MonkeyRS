@@ -41,7 +41,7 @@ impl Evaluator for Statement {
 pub struct LetStatement {
     pub token: Token,
     pub identifier: Identifier,
-    pub value: Option<Box<Expression>>,
+    pub value: Option<Expression>,
 }
 
 impl Display for LetStatement {
@@ -78,7 +78,7 @@ impl Evaluator for LetStatement {
 #[derive(PartialEq, Debug, Clone)]
 pub struct ReturnStatement {
     pub token: Token,
-    pub value: Option<Box<Expression>>,
+    pub value: Option<Expression>,
 }
 
 impl Display for ReturnStatement {
@@ -108,7 +108,7 @@ impl Evaluator for ReturnStatement {
 #[derive(PartialEq, Debug, Clone)]
 pub struct ExpressionStatement {
     pub token: Token,
-    pub expression: Option<Box<Expression>>,
+    pub expression: Option<Expression>,
 }
 
 impl Display for ExpressionStatement {

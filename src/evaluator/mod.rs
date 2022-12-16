@@ -287,15 +287,15 @@ addTwo(2);
             (r#"len("hello world")"#, Ok(Object::Integer(11))),
             (
                 r#"len(1)"#,
-                Err(ObjectError::new(format!(
-                    "argument to `len` not supported, got Integer(1)"
-                ))),
+                Err(ObjectError::new(
+                    "argument to `len` not supported, got Integer(1)".to_string(),
+                )),
             ),
             (
                 r#"len("one", "two")"#,
-                Err(ObjectError::new(format!(
-                    "wrong number of arguments. got=2, want=1"
-                ))),
+                Err(ObjectError::new(
+                    "wrong number of arguments. got=2, want=1".to_string(),
+                )),
             ),
         ];
 

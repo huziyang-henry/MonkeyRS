@@ -14,6 +14,7 @@ pub enum Expression {
     BooleanLiteral(BooleanLiteral),
     StringLiteral(StringLiteral),
     FunctionLiteral(FunctionLiteral),
+    ArrayLiteral(ArrayLiteral),
     PrefixExpression(PrefixExpression),
     InfixExpression(InfixExpression),
     IfExpression(IfExpression),
@@ -27,6 +28,7 @@ impl Display for Expression {
             Expression::IntegerLiteral(s) => s.fmt(f),
             Expression::BooleanLiteral(s) => s.fmt(f),
             Expression::FunctionLiteral(s) => s.fmt(f),
+            Expression::ArrayLiteral(s) => s.fmt(f),
             Expression::PrefixExpression(s) => s.fmt(f),
             Expression::InfixExpression(s) => s.fmt(f),
             Expression::IfExpression(s) => s.fmt(f),
@@ -43,6 +45,7 @@ impl Evaluator for Expression {
             Expression::IntegerLiteral(e) => e.eval(env),
             Expression::BooleanLiteral(e) => e.eval(env),
             Expression::FunctionLiteral(e) => e.eval(env),
+            Expression::ArrayLiteral(e) => e.eval(env),
             Expression::PrefixExpression(e) => e.eval(env),
             Expression::InfixExpression(e) => e.eval(env),
             Expression::IfExpression(e) => e.eval(env),
@@ -285,10 +288,41 @@ impl Display for FunctionLiteral {
 }
 
 #[derive(PartialEq, Debug, Clone)]
+pub struct ArrayLiteral {
+    pub token: Token,
+    pub elements: Vec<Expression>,
+}
+
+impl Display for ArrayLiteral {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let elements_str = self
+            .elements
+            .iter()
+            .map(|a| a.to_string())
+            .reduce(|a, b| format!("{}, {}", a, b));
+
+        match elements_str {
+            None => {
+                write!(f, "[]")
+            }
+            Some(p) => {
+                write!(f, "[{}]", p)
+            }
+        }
+    }
+}
+
+impl Evaluator for ArrayLiteral {
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
+        todo!()
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
 pub struct CallExpression {
     pub token: Token,
     pub function: Box<Expression>,
-    pub args: Vec<Box<Expression>>,
+    pub args: Vec<Expression>,
 }
 
 impl Evaluator for CallExpression {
