@@ -1,5 +1,5 @@
 use crate::evaluator::Evaluator;
-use crate::object::environment::{len, Environment};
+use crate::object::environment::{first, last, len, push, rest, Environment};
 use crate::object::{Array, BuiltinFunction, Function, Object, ObjectError};
 use crate::parser::statement::BlockStatement;
 use crate::token::Token;
@@ -82,6 +82,10 @@ impl Evaluator for Identifier {
         match value {
             None => match identifier_name {
                 "len" => Ok(Object::BuiltinFunction(BuiltinFunction::Len)),
+                "first" => Ok(Object::BuiltinFunction(BuiltinFunction::First)),
+                "last" => Ok(Object::BuiltinFunction(BuiltinFunction::Last)),
+                "rest" => Ok(Object::BuiltinFunction(BuiltinFunction::Rest)),
+                "push" => Ok(Object::BuiltinFunction(BuiltinFunction::Push)),
                 _ => Err(ObjectError::new(format!(
                     "identifier not found: {}",
                     self.token
@@ -405,16 +409,13 @@ impl Evaluator for CallExpression {
                     _ => result,
                 })
             }
+
             Object::BuiltinFunction(builtin) => match builtin {
-                BuiltinFunction::Len => {
-                    if arg_objs.len() != 1 {
-                        return Err(ObjectError::new(format!(
-                            "wrong number of arguments. got={}, want=1",
-                            arg_objs.len()
-                        )));
-                    }
-                    len(&arg_objs[0])
-                }
+                BuiltinFunction::Len => len(arg_objs),
+                BuiltinFunction::First => first(arg_objs),
+                BuiltinFunction::Last => last(arg_objs),
+                BuiltinFunction::Rest => rest(arg_objs),
+                BuiltinFunction::Push => push(arg_objs),
             },
             _ => Err(ObjectError::new(format!(
                 "not a function: {}",

@@ -297,6 +297,26 @@ addTwo(2);
                     "wrong number of arguments. got=2, want=1".to_string(),
                 )),
             ),
+            (r#"len([1,2,3,4,5])"#, Ok(Object::Integer(5))),
+            (r#"first([1,2,3,4,5])"#, Ok(Object::Integer(1))),
+            (r#"last([1,2,3,4,5])"#, Ok(Object::Integer(5))),
+            (
+                r#"rest([3,4,5])"#,
+                Ok(Object::Array(Array {
+                    elements: vec![Object::Integer(4), Object::Integer(5)],
+                })),
+            ),
+            (
+                r#"push([3,4,5], 1)"#,
+                Ok(Object::Array(Array {
+                    elements: vec![
+                        Object::Integer(3),
+                        Object::Integer(4),
+                        Object::Integer(5),
+                        Object::Integer(1),
+                    ],
+                })),
+            ),
         ];
 
         for input in inputs {

@@ -113,6 +113,10 @@ impl PartialEq for Function {
 #[derive(PartialEq, Debug, Clone)]
 pub enum BuiltinFunction {
     Len,
+    First,
+    Last,
+    Rest,
+    Push,
 }
 
 #[derive(PartialEq, Debug, Clone)]
