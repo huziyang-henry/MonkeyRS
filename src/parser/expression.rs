@@ -4,10 +4,12 @@ use crate::object::{BuiltinFunction, Function, Object, ObjectError};
 use crate::parser::statement::BlockStatement;
 use crate::token::Token;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
@@ -15,6 +17,7 @@ pub enum Expression {
     StringLiteral(StringLiteral),
     FunctionLiteral(FunctionLiteral),
     ArrayLiteral(ArrayLiteral),
+    HashLiteral(HashLiteral),
     PrefixExpression(PrefixExpression),
     InfixExpression(InfixExpression),
     IfExpression(IfExpression),
@@ -29,6 +32,7 @@ impl Display for Expression {
             Expression::BooleanLiteral(s) => s.fmt(f),
             Expression::FunctionLiteral(s) => s.fmt(f),
             Expression::ArrayLiteral(s) => s.fmt(f),
+            Expression::HashLiteral(s) => s.fmt(f),
             Expression::PrefixExpression(s) => s.fmt(f),
             Expression::InfixExpression(s) => s.fmt(f),
             Expression::IfExpression(s) => s.fmt(f),
@@ -46,6 +50,7 @@ impl Evaluator for Expression {
             Expression::BooleanLiteral(e) => e.eval(env),
             Expression::FunctionLiteral(e) => e.eval(env),
             Expression::ArrayLiteral(e) => e.eval(env),
+            Expression::HashLiteral(e) => e.eval(env),
             Expression::PrefixExpression(e) => e.eval(env),
             Expression::InfixExpression(e) => e.eval(env),
             Expression::IfExpression(e) => e.eval(env),
@@ -55,7 +60,7 @@ impl Evaluator for Expression {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Identifier {
     pub token: Token,
 }
@@ -84,7 +89,7 @@ impl Evaluator for Identifier {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct IntegerLiteral {
     pub token: Token,
     pub value: i64,
@@ -102,7 +107,7 @@ impl Evaluator for IntegerLiteral {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct BooleanLiteral {
     pub token: Token,
     pub value: bool,
@@ -120,7 +125,7 @@ impl Display for BooleanLiteral {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct PrefixExpression {
     pub token: Token,
     pub right: Box<Expression>,
@@ -154,7 +159,7 @@ impl Evaluator for PrefixExpression {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct InfixExpression {
     pub token: Token,
     pub left: Box<Expression>,
@@ -210,7 +215,7 @@ impl Display for InfixExpression {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct IfExpression {
     pub token: Token,
     pub condition: Box<Expression>,
@@ -251,7 +256,7 @@ impl Display for IfExpression {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct FunctionLiteral {
     pub token: Token,
     pub parameters: Vec<Identifier>,
@@ -287,7 +292,7 @@ impl Display for FunctionLiteral {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct ArrayLiteral {
     pub token: Token,
     pub elements: Vec<Expression>,
@@ -295,13 +300,13 @@ pub struct ArrayLiteral {
 
 impl Display for ArrayLiteral {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let elements_str = self
+        let option_str = self
             .elements
             .iter()
             .map(|a| a.to_string())
             .reduce(|a, b| format!("{}, {}", a, b));
 
-        match elements_str {
+        match option_str {
             None => {
                 write!(f, "[]")
             }
@@ -318,7 +323,52 @@ impl Evaluator for ArrayLiteral {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Debug, Clone)]
+pub struct HashLiteral {
+    pub token: Token,
+    pub paris: HashMap<Expression, Expression>,
+}
+
+impl PartialEq for HashLiteral {
+    fn eq(&self, other: &Self) -> bool {
+        self.token == other.token
+    }
+}
+
+impl Eq for HashLiteral {}
+
+impl Hash for HashLiteral {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.token.hash(state);
+    }
+}
+
+impl Evaluator for HashLiteral {
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
+        todo!()
+    }
+}
+
+impl Display for HashLiteral {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let option_str = self
+            .paris
+            .iter()
+            .map(|(k, v)| format!("{}:{}", k, v))
+            .reduce(|a, b| format!("{}, {}", a, b));
+
+        match option_str {
+            None => {
+                write!(f, "{{}}")
+            }
+            Some(s) => {
+                write!(f, "{{{}}}", s)
+            }
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct CallExpression {
     pub token: Token,
     pub function: Box<Expression>,
@@ -385,7 +435,7 @@ impl Display for CallExpression {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct StringLiteral {
     pub token: Token,
     pub value: String,

@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Token {
     ILLEGAL(String),
     EOF,
@@ -24,6 +24,7 @@ pub enum Token {
 
     COMMA,
     SEMICOLON,
+    COLON,
 
     LPAREN,
     RPAREN,
@@ -67,6 +68,7 @@ impl Token {
             Token::NEQ => "!=",
             Token::COMMA => ",",
             Token::SEMICOLON => ";",
+            Token::COLON => ":",
             Token::LPAREN => "(",
             Token::RPAREN => ")",
             Token::LBRACE => "{",

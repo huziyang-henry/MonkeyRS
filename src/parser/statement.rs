@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub enum Statement {
     LetStatement(LetStatement),
     ReturnStatement(ReturnStatement),
@@ -37,7 +37,7 @@ impl Evaluator for Statement {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct LetStatement {
     pub token: Token,
     pub identifier: Identifier,
@@ -75,7 +75,7 @@ impl Evaluator for LetStatement {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct ReturnStatement {
     pub token: Token,
     pub value: Option<Expression>,
@@ -105,7 +105,7 @@ impl Evaluator for ReturnStatement {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct ExpressionStatement {
     pub token: Token,
     pub expression: Option<Expression>,
@@ -133,7 +133,7 @@ impl Evaluator for ExpressionStatement {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct BlockStatement {
     pub token: Token,
     pub statements: Vec<Statement>,

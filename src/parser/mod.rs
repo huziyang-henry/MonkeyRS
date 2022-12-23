@@ -1,14 +1,16 @@
+use std::collections::HashMap;
+use std::mem::swap;
+
 use crate::lexer::Lexer;
 use crate::parser::expression::{
-    ArrayLiteral, BooleanLiteral, CallExpression, Expression, FunctionLiteral, Identifier,
-    IfExpression, InfixExpression, IntegerLiteral, PrefixExpression, StringLiteral,
+    ArrayLiteral, BooleanLiteral, CallExpression, Expression, FunctionLiteral, HashLiteral,
+    Identifier, IfExpression, InfixExpression, IntegerLiteral, PrefixExpression, StringLiteral,
 };
 use crate::parser::program::Program;
 use crate::parser::statement::{
     BlockStatement, ExpressionStatement, LetStatement, ReturnStatement, Statement,
 };
 use crate::token::Token;
-use std::mem::swap;
 
 pub mod expression;
 pub mod node;
@@ -165,6 +167,7 @@ impl Parser {
             Token::IF => self.parse_if_expression(),
             Token::FUNCTION => self.parse_fn_expression(),
             Token::LBRACKET => self.parse_array_literal(),
+            Token::LBRACE => self.parse_hash_literal(),
             Token::BANG => self.parse_prefix_expression(),
             Token::MINUS => self.parse_prefix_expression(),
             Token::STRING(s) => self.parse_string_literal(),
@@ -361,6 +364,41 @@ impl Parser {
         Some(Expression::ArrayLiteral(ArrayLiteral { token, elements }))
     }
 
+    fn parse_hash_literal(&mut self) -> Option<Expression> {
+        let token = self.cur_token.clone();
+        let mut paris = HashMap::new();
+        while !matches!(self.peek_token, Token::RBRACE) {
+            self.next_token();
+            let key = self.parse_expression(PrecedenceType::LOWEST)?;
+
+            if matches!(self.peek_token, Token::COLON) {
+                self.next_token();
+            } else {
+                return None;
+            }
+
+            self.next_token();
+            let value = self.parse_expression(PrecedenceType::LOWEST)?;
+            paris.insert(key, value);
+
+            if !matches!(self.peek_token, Token::RBRACE) {
+                if matches!(self.peek_token, Token::COMMA) {
+                    self.next_token();
+                } else {
+                    return None;
+                }
+            }
+        }
+
+        if matches!(self.peek_token, Token::RBRACE) {
+            self.next_token();
+        } else {
+            return None;
+        }
+
+        Some(Expression::HashLiteral(HashLiteral { token, paris }))
+    }
+
     fn parse_expression_list(&mut self, token: Token) -> Option<Vec<Expression>> {
         let mut vec = vec![];
 
@@ -438,6 +476,7 @@ mod tests {
     use crate::parser::expression::{CallExpression, Expression, FunctionLiteral};
     use crate::parser::statement::{ExpressionStatement, Statement};
     use crate::parser::Parser;
+    use std::collections::HashMap;
 
     #[test]
     fn test_parser() {
@@ -819,7 +858,7 @@ return 5;
             assert_eq!(op_exp.token.to_string(), operator);
             assert_literal_expression(&op_exp.right, right);
         } else {
-            assert!(false, "exp is not PrefixExpression");
+            panic!("exp is not PrefixExpression");
         }
     }
 
@@ -829,7 +868,7 @@ return 5;
             assert_eq!(op_exp.token.to_string(), operator);
             assert_literal_expression(&op_exp.right, right);
         } else {
-            assert!(false, "exp is not InfixExpression");
+            panic!("exp is not InfixExpression");
         }
     }
 
@@ -935,6 +974,107 @@ return 5;
                 );
             }
             _ => panic!("not array literal"),
+        }
+    }
+
+    #[test]
+    fn test_hash_literal_string_key() {
+        let mut expected = HashMap::new();
+        expected.insert("one", 1);
+        expected.insert("two", 2);
+        expected.insert("three", 3);
+
+        let input = r#"{"one": 1, "two": 2, "three": 3}"#;
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        let exp_stmt = unwrap_to_expression_statement(&program.statements[0]).unwrap();
+        let expression = exp_stmt.expression.as_ref().unwrap();
+        match expression {
+            Expression::HashLiteral(h) => {
+                assert_eq!(h.paris.len(), 3);
+
+                let mut iter = h.paris.iter();
+                let kv = iter.next().unwrap();
+                let v = expected.get(kv.0.to_string().as_str()).unwrap();
+                assert_integer_literal(kv.1, *v);
+
+                let kv = iter.next().unwrap();
+                let v = expected.get(kv.0.to_string().as_str()).unwrap();
+                assert_integer_literal(kv.1, *v);
+
+                let kv = iter.next().unwrap();
+                let v = expected.get(kv.0.to_string().as_str()).unwrap();
+                assert_integer_literal(kv.1, *v);
+            }
+            _ => panic!("not hash literal"),
+        }
+    }
+
+    #[test]
+    fn test_hash_literal_empty() {
+        let input = "{}";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        let exp_stmt = unwrap_to_expression_statement(&program.statements[0]).unwrap();
+        let expression = exp_stmt.expression.as_ref().unwrap();
+        match expression {
+            Expression::HashLiteral(h) => {
+                assert_eq!(h.paris.len(), 0);
+            }
+            _ => panic!("not hash literal"),
+        }
+    }
+
+    #[test]
+    fn test_hash_literal_with_expression() {
+        let mut expected: HashMap<&str, fn(&Expression)> = HashMap::new();
+        expected.insert("one", |e| {
+            assert_infix_expression(e, Literal::NumberLiteral(1), "+", Literal::NumberLiteral(0))
+        });
+
+        expected.insert("two", |e| {
+            assert_infix_expression(
+                e,
+                Literal::NumberLiteral(10),
+                "-",
+                Literal::NumberLiteral(8),
+            );
+        });
+
+        expected.insert("three", |e| {
+            assert_infix_expression(
+                e,
+                Literal::NumberLiteral(15),
+                "/",
+                Literal::NumberLiteral(5),
+            )
+        });
+
+        let input = r#"{"one": 1 + 0, "two": 10 - 8, "three": 15 / 5}"#;
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        let exp_stmt = unwrap_to_expression_statement(&program.statements[0]).unwrap();
+        let expression = exp_stmt.expression.as_ref().unwrap();
+        match expression {
+            Expression::HashLiteral(h) => {
+                assert_eq!(h.paris.len(), 3);
+                let mut iter = h.paris.iter();
+                let kv = iter.next().unwrap();
+                let f = expected.get(kv.0.to_string().as_str()).unwrap();
+                f(kv.1);
+
+                let kv = iter.next().unwrap();
+                let f = expected.get(kv.0.to_string().as_str()).unwrap();
+                f(kv.1);
+
+                let kv = iter.next().unwrap();
+                let f = expected.get(kv.0.to_string().as_str()).unwrap();
+                f(kv.1);
+            }
+            _ => panic!("not hash literal"),
         }
     }
 }

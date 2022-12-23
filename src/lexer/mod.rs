@@ -52,6 +52,7 @@ impl Lexer {
             '(' => Token::LPAREN,
             ')' => Token::RPAREN,
             ',' => Token::COMMA,
+            ':' => Token::COLON,
             '+' => Token::PLUS,
             '-' => Token::MINUS,
             '*' => Token::ASTERISK,
@@ -189,6 +190,7 @@ if (5 < 10) {
 \"foobar\"
 \"foo bar\"\
 [1,2];
+{\"foo\": \"bar\"}
 ";
         let expected_output = vec![
             Token::LET,
@@ -271,6 +273,11 @@ if (5 < 10) {
             Token::INT("2".to_string()),
             Token::RBRACKET,
             Token::SEMICOLON,
+            Token::LBRACE,
+            Token::STRING("foo".to_string()),
+            Token::COLON,
+            Token::STRING("bar".to_string()),
+            Token::RBRACE,
         ];
 
         let lexer = Lexer::new(input);
