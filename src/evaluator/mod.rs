@@ -13,7 +13,7 @@ mod test {
     use crate::evaluator::Evaluator;
     use crate::lexer::Lexer;
     use crate::object::environment::Environment;
-    use crate::object::{Object, ObjectError};
+    use crate::object::{Array, Object, ObjectError};
     use crate::parser::Parser;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -305,6 +305,59 @@ addTwo(2);
 
             let env = Rc::new(RefCell::new(Environment::new()));
             assert_eq!(program.eval(Rc::clone(&env)), input.1);
+        }
+    }
+
+    #[test]
+    fn test_array_literal() {
+        let input = "[1, 2*2, 3+3]";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        let env = Rc::new(RefCell::new(Environment::new()));
+        assert_eq!(
+            program.eval(Rc::clone(&env)),
+            Ok(Object::Array(Array {
+                elements: vec![Object::Integer(1), Object::Integer(4), Object::Integer(6),]
+            }))
+        );
+    }
+
+    #[test]
+    fn test_array_index_expression() {
+        let inputs = vec![
+            ("[1, 2, 3][0]", Some(1)),
+            ("[1, 2, 3][1]", Some(2)),
+            ("[1, 2, 3][2]", Some(3)),
+            ("let i = 0; [1][i];", Some(1)),
+            ("[1, 2, 3][1 + 1];", Some(3)),
+            ("let myArray = [1, 2, 3]; myArray[2];", Some(3)),
+            (
+                "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];",
+                Some(6),
+            ),
+            (
+                "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]",
+                Some(2),
+            ),
+            ("[1, 2, 3][3]", None),
+            ("[1, 2, 3][-1]", None),
+        ];
+
+        for input in inputs {
+            let mut parser = Parser::new(Lexer::new(input.0));
+            let program = parser.parse_program();
+
+            let env = Rc::new(RefCell::new(Environment::new()));
+            let result = program.eval(Rc::clone(&env));
+            match result {
+                Ok(Object::Integer(i)) => {
+                    assert_eq!(Some(i), input.1)
+                }
+                _ => {
+                    assert_eq!(None, input.1)
+                }
+            }
         }
     }
 }

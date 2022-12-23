@@ -17,6 +17,7 @@ pub enum Object {
     Return(Box<Object>),
     Function(Rc<Function>),
     BuiltinFunction(BuiltinFunction),
+    Array(Array),
 }
 
 impl Display for Object {
@@ -42,6 +43,9 @@ impl Display for Object {
             }
             Object::BuiltinFunction(_) => {
                 write!(f, "builtin function")
+            }
+            Object::Array(arr) => {
+                write!(f, "{}", arr)
             }
         }
     }
@@ -109,4 +113,28 @@ impl PartialEq for Function {
 #[derive(PartialEq, Debug, Clone)]
 pub enum BuiltinFunction {
     Len,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Array {
+    pub elements: Vec<Object>,
+}
+
+impl Display for Array {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let option_str = self
+            .elements
+            .iter()
+            .map(|i| format!("{}", i))
+            .reduce(|a, b| format!("{}, {}", a, b));
+
+        match option_str {
+            None => {
+                write!(f, "[]")
+            }
+            Some(s) => {
+                write!(f, "[{}]", s)
+            }
+        }
+    }
 }

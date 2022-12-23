@@ -1,6 +1,6 @@
 use crate::evaluator::Evaluator;
 use crate::object::environment::{len, Environment};
-use crate::object::{BuiltinFunction, Function, Object, ObjectError};
+use crate::object::{Array, BuiltinFunction, Function, Object, ObjectError};
 use crate::parser::statement::BlockStatement;
 use crate::token::Token;
 use std::cell::RefCell;
@@ -322,7 +322,12 @@ impl Display for ArrayLiteral {
 
 impl Evaluator for ArrayLiteral {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
-        todo!()
+        let mut vec = vec![];
+        for e in &self.elements {
+            vec.push(e.eval(Rc::clone(&env))?);
+        }
+
+        Ok(Object::Array(Array { elements: vec }))
     }
 }
 
@@ -471,6 +476,21 @@ impl Display for IndexExpression {
 
 impl Evaluator for IndexExpression {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
-        todo!()
+        let left = self.left.eval(Rc::clone(&env))?;
+        let index = self.index.eval(Rc::clone(&env))?;
+        match (&left, index) {
+            (Object::Array(arr), Object::Integer(i)) => {
+                let max = arr.elements.len() - 1;
+                if i < 0 || i > max as i64 {
+                    Err(ObjectError::new(format!("index out of range [0, {}]", max)))
+                } else {
+                    Ok(arr.elements[i as usize].clone())
+                }
+            }
+            _ => Err(ObjectError::new(format!(
+                "index operator not supported: {}",
+                left
+            ))),
+        }
     }
 }
