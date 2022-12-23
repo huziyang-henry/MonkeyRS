@@ -4,7 +4,8 @@ use std::mem::swap;
 use crate::lexer::Lexer;
 use crate::parser::expression::{
     ArrayLiteral, BooleanLiteral, CallExpression, Expression, FunctionLiteral, HashLiteral,
-    Identifier, IfExpression, InfixExpression, IntegerLiteral, PrefixExpression, StringLiteral,
+    Identifier, IfExpression, IndexExpression, InfixExpression, IntegerLiteral, PrefixExpression,
+    StringLiteral,
 };
 use crate::parser::program::Program;
 use crate::parser::statement::{
@@ -26,6 +27,7 @@ enum PrecedenceType {
     PRODUCT,
     PREFIX,
     CALL,
+    Index,
 }
 
 pub struct Parser {
@@ -199,6 +201,9 @@ impl Parser {
             } else if matches!(self.peek_token, Token::LPAREN) {
                 self.next_token();
                 left = self.parse_call_expression(left)?;
+            } else if matches!(self.peek_token, Token::LBRACKET) {
+                self.next_token();
+                left = self.parse_index_expression(left)?;
             } else {
                 break;
             }
@@ -435,6 +440,23 @@ impl Parser {
         }))
     }
 
+    fn parse_index_expression(&mut self, left: Expression) -> Option<Expression> {
+        let token = self.cur_token.clone();
+        self.next_token();
+
+        let index = self.parse_expression(PrecedenceType::LOWEST)?;
+        if matches!(self.peek_token, Token::RBRACKET) {
+            self.next_token();
+            Some(Expression::IndexExpression(IndexExpression {
+                token,
+                left: Box::new(left),
+                index: Box::new(index),
+            }))
+        } else {
+            None
+        }
+    }
+
     fn parse_prefix_expression(&mut self) -> Option<Expression> {
         let token = self.cur_token.clone();
         self.next_token();
@@ -465,6 +487,7 @@ impl Parser {
             Token::PLUS | Token::MINUS => PrecedenceType::SUM,
             Token::SLASH | Token::ASTERISK => PrecedenceType::PRODUCT,
             Token::LPAREN => PrecedenceType::CALL,
+            Token::LBRACKET => PrecedenceType::Index,
             _ => PrecedenceType::LOWEST,
         }
     }
@@ -722,6 +745,14 @@ return 5;
                 "add(a + b + c * d / f + g)",
                 "add((((a + b) + ((c * d) / f)) + g))",
             ),
+            (
+                "a * [1, 2, 3, 4][b * c] * d",
+                "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+            ),
+            (
+                "add(a * b[2], b[1], 2 * [1, 2][1])",
+                "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+            ),
         ];
 
         for test in test_vec {
@@ -974,6 +1005,29 @@ return 5;
                 );
             }
             _ => panic!("not array literal"),
+        }
+    }
+
+    #[test]
+    fn test_index_expression() {
+        let input = "myArray[1+1]";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        let exp_stmt = unwrap_to_expression_statement(&program.statements[0]).unwrap();
+        let expression = exp_stmt.expression.as_ref().unwrap();
+
+        match expression {
+            Expression::IndexExpression(e) => {
+                assert_identifier(e.left.as_ref(), "myArray");
+                assert_infix_expression(
+                    e.index.as_ref(),
+                    Literal::NumberLiteral(1),
+                    "+",
+                    Literal::NumberLiteral(1),
+                )
+            }
+            _ => panic!("not index expression"),
         }
     }
 

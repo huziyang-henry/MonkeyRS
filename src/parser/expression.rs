@@ -22,6 +22,7 @@ pub enum Expression {
     InfixExpression(InfixExpression),
     IfExpression(IfExpression),
     CallExpression(CallExpression),
+    IndexExpression(IndexExpression),
 }
 
 impl Display for Expression {
@@ -38,6 +39,7 @@ impl Display for Expression {
             Expression::IfExpression(s) => s.fmt(f),
             Expression::CallExpression(s) => s.fmt(f),
             Expression::StringLiteral(s) => s.fmt(f),
+            Expression::IndexExpression(s) => s.fmt(f),
         }
     }
 }
@@ -56,6 +58,7 @@ impl Evaluator for Expression {
             Expression::IfExpression(e) => e.eval(env),
             Expression::CallExpression(e) => e.eval(env),
             Expression::StringLiteral(e) => e.eval(env),
+            Expression::IndexExpression(e) => e.eval(env),
         }
     }
 }
@@ -450,5 +453,24 @@ impl Display for StringLiteral {
 impl Evaluator for StringLiteral {
     fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
         Ok(Object::String(self.value.clone()))
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub struct IndexExpression {
+    pub token: Token,
+    pub left: Box<Expression>,
+    pub index: Box<Expression>,
+}
+
+impl Display for IndexExpression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}[{}])", self.left, self.index)
+    }
+}
+
+impl Evaluator for IndexExpression {
+    fn eval(&self, env: Rc<RefCell<Environment>>) -> Result<Object, ObjectError> {
+        todo!()
     }
 }
